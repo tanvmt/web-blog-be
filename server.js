@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/connectDB');
+const mainApiRouter = require('./routes');
 
 
 const app = express();
@@ -19,6 +20,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Welcome to News Recommendation API!' });
 });
 
+app.use('/api', mainApiRouter);
 
 const PORT = process.env.PORT || 8080;
 
