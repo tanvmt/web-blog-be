@@ -1,8 +1,8 @@
 require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
+const connectDB = require('./config/connectDB');
 
-const db = require('./models');
 
 const app = express();
 
@@ -22,13 +22,18 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
-db.sequelize.sync({ force: false }) 
-    .then(() => {
-        console.log('Database synced successfully.');
+async function startServer() {
+    try {
+        await connectDB();
         app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}.`);
+            console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
         });
-    })
-    .catch((err) => {
-        console.error('Failed to sync database:', err);
-    });
+
+    } catch (error) {
+        console.error('❌ Khởi động server thất bại, không thể kết nối CSDL:');
+        console.error(error);
+        process.exit(1);
+    }
+}
+
+startServer();
