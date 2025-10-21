@@ -10,12 +10,6 @@ const s3 = new S3Client({
   },
 });
 
-/**
- * Hàm tạo một trình upload (multer instance)
- * @param {string} folder - Thư mục con trong S3 (vd: 'avatars', 'thumbnails')
- * @param {string[]} allowedMimes - Mảng các MimeType hợp lệ (vd: ['image/jpeg', 'video/mp4'])
- * @param {number} fileSizeLimit - Giới hạn kích thước file (tính bằng bytes)
- */
 const createUploader = (folder, allowedMimes, fileSizeLimit) => {
   
   return multer({
