@@ -1,10 +1,7 @@
-class ApiResponse {
-    constructor(success, message, data = null, error = null) {
-        this.success = success;
-        this.message = message;
-        this.data = data;
-        this.error = error;
-    }
-}
+const pino = require('pino');
 
-module.exports = ApiResponse;
+const logger = pino({
+    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+});
+
+module.exports = logger;

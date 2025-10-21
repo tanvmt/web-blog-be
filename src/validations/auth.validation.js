@@ -1,7 +1,7 @@
 const z = require('zod');
 
 const register = z.object({
-    name: z.string().min(1),
+    fullName: z.string().min(1),
     email: z.email(),
     password: z.string().min(8),
 });
@@ -20,16 +20,15 @@ const requestOtp = z.object({
 });
 
 const changePassword = z.object({
+    email: z.email(),
     otp: z.string().length(6),
     newPassword: z.string().min(8),
 });
 
-const verifyEmail = z.object({
-    email: z.string().email(),
+const verifyOtp = z.object({
+    email: z.email(),
     otp: z.string().length(6),
 });
-
-const resendOtp = z.object({});
 
 module.exports = {
     register,
@@ -37,6 +36,5 @@ module.exports = {
     refreshToken,
     requestOtp,
     changePassword,
-    verifyEmail,
-    resendOtp,
+    verifyOtp,
 };
