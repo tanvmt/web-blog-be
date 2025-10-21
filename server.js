@@ -1,10 +1,14 @@
 require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/connectDB');
-const mainApiRouter = require('./routes');
+const prisma = require('./src/config/db.config');
+const redisClient = require('./src/config/redis.config');
 
+const authRoutes = require('./src/routes/auth.route');
+const errorMiddleware = require('./src/middlewares/error.middleware');
+const loggerMiddleware = require('./src/middlewares/logger.middleware');
 
+const mainApiRouter = require('./src/routes/');
 const app = express();
 
 const corsOptions = {
@@ -16,26 +20,32 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to News Recommendation API!' });
-});
+//logger middleware
+app.use(loggerMiddleware);
 
-app.use('/api', mainApiRouter);
+
+app.use('/api/auth', authRoutes);
+
+
+// Error handler must be last
+app.use(errorMiddleware);
+
+app.use('/api/v1', mainApiRouter);
 
 const PORT = process.env.PORT || 8080;
 
-async function startServer() {
+(async () => {
     try {
-        await connectDB();
-        app.listen(PORT, () => {
-            console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
-        });
+        await prisma.$connect();
+        console.log("✅ Prisma connected");
 
-    } catch (error) {
-        console.error('❌ Khởi động server thất bại, không thể kết nối CSDL:');
-        console.error(error);
+        console.log("✅ Redis status:", redisClient.status);
+
+        app.listen(PORT, () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+        });
+    } catch (err) {
+        console.error("❌ Startup error:", err);
         process.exit(1);
     }
-}
-
-startServer();
+})();

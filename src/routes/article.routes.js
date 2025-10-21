@@ -1,0 +1,64 @@
+// src/routes/article.route.js
+const express = require('express');
+const articleController = require('../controllers/article.controller');
+const auth = require('../middlewares/auth.middleware');
+const validate = require('../middlewares/validate.middleware');
+const articleValidation = require('../validations/article.validation');
+const createUploader = require('../config/s3Upload');
+
+const router = express.Router();
+
+const imageMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const mediaMimes = [
+  ...imageMimes,
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+];
+
+const uploadThumbnail = createUploader(
+  'thumbnails',
+  imageMimes,
+  1024 * 1024 * 5 // 5MB
+);
+
+const uploadMedia = createUploader(
+  'media',
+  mediaMimes,
+  1024 * 1024 * 100 // 100MB
+);
+
+router.post(
+  '/',
+  auth, 
+  uploadThumbnail.single('thumbnail'),
+  validate(articleValidation.createArticle), 
+  articleController.createArticle
+);
+
+router.post(
+  '/upload-media',
+  auth, 
+  uploadMedia.single('media_file'),
+  articleController.uploadMedia
+);
+
+router.get(
+  '/feed',
+  auth,
+  validate(articleValidation.getArticles), 
+);
+
+router.get(
+  '/:slug',
+  validate(articleValidation.getArticleBySlug), 
+  articleController.getArticleBySlug
+);
+
+router.get(
+  '/',
+  validate(articleValidation.getArticles), 
+  articleController.getAllArticles
+);
+
+module.exports = router;
