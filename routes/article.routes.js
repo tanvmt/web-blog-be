@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 
 router.post('/', authMiddleware, articleController.createArticle);
 router.get('/', articleController.getAllArticles);
+router.get('/feed', authMiddleware, articleController.getFeedArticles);
 router.get('/:slug', articleController.getArticleBySlug);
 
 // U11: Cập nhật bài viết (bạn sẽ tự làm)

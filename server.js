@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Welcome to News Recommendation API!' });
 });
 
-app.use('/api', mainApiRouter);
+app.use('/api/v1', mainApiRouter);
 
 const PORT = process.env.PORT || 8080;
 

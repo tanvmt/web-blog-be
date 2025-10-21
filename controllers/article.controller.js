@@ -4,92 +4,171 @@ const slugify = require('../utils/slugify');
 const createArticle = async (req, res) => {
     try {
         const authorId = req.user.id;
-
-        const { 
-            title, 
-            content, 
-            thumbnail_url, 
-            read_time_minutes, 
-            tags
-        } = req.body;
-
-        // Biến mảng tên tags thành định dạng mà Prisma cần để 'connectOrCreate'
-        const tagOperations = tags.map(tagName => {
-            return {
-                where: { name: tagName }, // Tìm tag theo tên
-                create: { name: tagName }  // Nếu không thấy thì tạo tag mới
-            };
-        });
-
-        // Tạo slug từ title
+        const { title, content, thumbnail_url, read_time_minutes, tags } = req.body;
+        const tagOperations = tags.map(tagName => ({
+            where: { name: tagName },
+            create: { name: tagName }
+        }));
         const slug = slugify(title);
 
-        // Tạo bài viết mới trong CSDL
-        const newArticle = await prisma.articles.create({
+        const newArticle = await prisma.article.create({ 
             data: {
                 title,
                 content,
-                thumbnail_url,
-                read_time_minutes: parseInt(read_time_minutes, 10),
+                thumbnailUrl: thumbnail_url, 
+                readTimeMinutes: read_time_minutes, 
                 slug,
-                author_id: authorId,
-                moderation_status: 'pending', // Mặc định chờ duyệt
+                authorId: authorId, 
+                moderationStatus: 'pending', 
                 
-                // Kết nối hoặc tạo tags thông qua bảng Article_Tags
-                article_tags: {
+                articleTags: { 
                     create: tagOperations.map(op => ({
-                        tag: {
-                            connectOrCreate: op
-                        }
+                        tag: { connectOrCreate: op }
                     }))
                 }
             },
-            // Lấy lại thông tin tags đã kết nối
-            include: {
-                article_tags: {
-                    include: {
-                        tag: true
-                    }
-                }
-            }
+            include: { articleTags: { include: { tag: true } } }
         });
-
         res.status(201).json(newArticle);
-
     } catch (error) {
         console.error("Lỗi khi tạo bài viết:", error);
         res.status(500).json({ message: 'Lỗi máy chủ nội bộ' });
     }
 };
 
-// API lấy danh sách bài viết (U5)
 const getAllArticles = async (req, res) => {
     try {
-        const articles = await prisma.articles.findMany({
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const articles = await prisma.article.findMany({
             where: {
-                moderation_status: 'approved' // Chỉ lấy bài đã duyệt
+                moderationStatus: 'approved'
             },
             orderBy: {
-                created_at: 'desc' // Sắp xếp mới nhất
+                createdAt: 'desc'
             },
+            skip: skip,
+            take: limit,
             include: {
-                author: { // Lấy thông tin tác giả
-                    select: { id: true, fullName: true, avatar_url: true }
+                author: { 
+                    select: { 
+                        id: true, 
+                        fullName: true, 
+                        avatarUrl: true 
+                    }
+                },
+                articleTags: { 
+                    include: {
+                        tag: { 
+                            select: { name: true }
+                        }
+                    }
                 }
             }
         });
-        res.status(200).json(articles);
+
+        const totalArticles = await prisma.article.count({
+            where: { moderationStatus: 'approved' }
+        });
+
+        const articlesWithSimpleTags = articles.map(article => ({
+            ...article,
+            tags: article.articleTags.map(at => at.tag.name) 
+        }));
+
+
+        res.status(200).json({
+            articles: articlesWithSimpleTags,
+            total: totalArticles,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(totalArticles / limit)
+        });
+
     } catch (error) {
         console.error("Lỗi khi lấy bài viết:", error);
         res.status(500).json({ message: 'Lỗi máy chủ nội bộ' });
     }
 };
 
-// API lấy chi tiết 1 bài viết
+const getFeedArticles = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const following = await prisma.follow.findMany({
+            where: { followerId: userId },
+            select: { followedId: true }
+        });
+        const followingIds = following.map(f => f.followedId);
+
+        if (followingIds.length === 0) {
+             return res.status(200).json({
+                articles: [],
+                total: 0,
+                page: 1,
+                limit: limit,
+                totalPages: 0
+            });
+        }
+
+        const articles = await prisma.article.findMany({
+            where: {
+                authorId: {
+                    in: followingIds 
+                },
+                moderationStatus: 'approved'
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            skip: skip,
+            take: limit,
+            include: {
+                author: { 
+                    select: { id: true, fullName: true, avatarUrl: true }
+                },
+                articleTags: {
+                    include: { tag: { select: { name: true } } }
+                }
+            }
+        });
+
+         const totalArticles = await prisma.article.count({
+            where: {
+                authorId: { in: followingIds },
+                moderationStatus: 'approved'
+            }
+        });
+
+        const articlesWithSimpleTags = articles.map(article => ({
+            ...article,
+            tags: article.articleTags.map(at => at.tag.name)
+        }));
+
+        res.status(200).json({
+            articles: articlesWithSimpleTags,
+            total: totalArticles,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(totalArticles / limit)
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy feed bài viết:", error);
+        res.status(500).json({ message: 'Lỗi máy chủ nội bộ' });
+    }
+};
+
 const getArticleBySlug = async (req, res) => {
      try {
         const { slug } = req.params;
-        const article = await prisma.articles.findUnique({
+        const article = await prisma.article.findUnique({
             where: { 
                 slug: slug,
                 moderation_status: 'approved'
@@ -98,12 +177,12 @@ const getArticleBySlug = async (req, res) => {
                 author: {
                     select: { id: true, fullName: true, avatar_url: true, bio: true }
                 },
-                article_tags: {
+                articleTags: {
                     include: {
                         tag: true
                     }
                 },
-                comments: { // Lấy cả bình luận
+                comments: {
                     orderBy: { created_at: 'asc' },
                     include: {
                         user: {
@@ -129,6 +208,6 @@ const getArticleBySlug = async (req, res) => {
 module.exports = {
     createArticle,
     getAllArticles,
+    getFeedArticles,
     getArticleBySlug
-    // Thêm các hàm CRUD khác (update, delete) ở đây (U11)
 };
