@@ -42,19 +42,31 @@ const login = async ({ email, password }) => {
     logger.info(`User logged in: ${user.id}`);
     return { user: user, accessToken, refreshToken };
 };
-
-const refreshToken = async (refreshToken) => {
+const refreshTokenService = async (refreshToken) => {
+    var decoded = null
     try {
-        const decode = await verifyRefreshToken(refreshToken)
-        const user = await userRepository.findById(decode.id);
-        if (!user) {
+        decoded = await verifyRefreshToken(refreshToken);
+    } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            throw new AppError(401, 'Refresh token expired');
+        }
+        if (err.name === 'JsonWebTokenError') {
             throw new AppError(401, 'Invalid refresh token');
         }
-        const accessToken = await generateAccessToken(user);
-        return { accessToken };
-    } catch (err) {
-        throw new AppError(401, 'Invalid refresh token');
+        console.error('Unexpected error in refreshTokenService:', err);
+        throw new AppError(500, 'Failed to refresh token');
     }
+    if (!decoded) {
+        throw new AppError(401, 'Refresh token revoked or invalid');
+    }
+
+    const user = await userRepository.findById(decoded.id);
+    if (!user) {
+        throw new AppError(404, 'User not found');
+    }
+
+    const accessToken = await generateAccessToken(user);
+    return { accessToken };
 };
 
 const getProfile = async (userId) => {

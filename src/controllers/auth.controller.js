@@ -1,6 +1,5 @@
 const authService = require('../services/auth.service');
 const ApiResponse = require('../utils/ApiResponse');
-const AppError = require('../utils/AppError');
 const UserDTO = require('../dtos/auth.dto');
 
 const register = async (req, res, next) => {

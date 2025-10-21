@@ -32,25 +32,19 @@ const generateAccessToken = async (user) => {
 };
 
 const verifyRefreshToken = async (refreshToken) => {
-    try {
-        const decoded = jwt.verify(refreshToken, refreshSecret);
-        const refreshKey = `${decoded.id}:refresh:${refreshToken}`;
-        const isValid = await redisClient.get(refreshKey);
-        if (!isValid) {
-            throw new AppError(401, 'Invalid or expired refresh token');
-        }
-        return decoded;
-    } catch (err) {
-        throw new AppError(401, 'Invalid refresh token');
+    const decoded = jwt.verify(refreshToken, refreshSecret);
+    const refreshKey = `${decoded.id}:refresh:${refreshToken}`;
+    const isValid = await redisClient.get(refreshKey);
+
+    if (!isValid) {
+        throw new Error('Invalid or expired refresh token');
     }
+
+    return decoded;
 };
 
 const verifyAccessToken = (token) => {
-    try {
-        return jwt.verify(token,accessSecret );
-    } catch (err) {
-        throw new AppError(401, 'Invalid token');
-    }
+    return jwt.verify(token,accessSecret );
 };
 
 module.exports = {
