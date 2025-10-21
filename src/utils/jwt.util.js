@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { redisClient } = require('../config/redis.config');
-const AppError = require('./AppError');
+const redisClient = require('../config/redis.config');
 const logger = require('./logger');
 
 const accessSecret = process.env.JWT_SECRET;
@@ -15,9 +14,8 @@ const generateRefreshToken = async (user) => {
         { expiresIn: refreshExpire }
     );
 
-    const refreshKey = `${user.id}:refresh:${refreshToken}`;
-    await redisClient.set(refreshKey, 'valid', 'EX', 60 * 60 * 24 * 7);
-
+    const refreshKey = `user:${user.id}:refreshToken`;
+    await redisClient.set(refreshKey, refreshToken, 'EX', 60*60*24*7);
     logger.info(`Tokens generated for user ${user.id}`);
     return { refreshToken };
 };
@@ -32,15 +30,7 @@ const generateAccessToken = async (user) => {
 };
 
 const verifyRefreshToken = async (refreshToken) => {
-    const decoded = jwt.verify(refreshToken, refreshSecret);
-    const refreshKey = `${decoded.id}:refresh:${refreshToken}`;
-    const isValid = await redisClient.get(refreshKey);
-
-    if (!isValid) {
-        throw new Error('Invalid or expired refresh token');
-    }
-
-    return decoded;
+    return jwt.verify(refreshToken, refreshSecret);
 };
 
 const verifyAccessToken = (token) => {

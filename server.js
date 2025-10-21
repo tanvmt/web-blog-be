@@ -3,8 +3,12 @@ const express = require('express');
 const cors = require('cors');
 const prisma = require('./src/config/db.config');
 const redisClient = require('./src/config/redis.config');
-const mainApiRouter = require('./src/routes/');
 
+const authRoutes = require('./src/routes/auth.route');
+const errorMiddleware = require('./src/middlewares/error.middleware');
+const loggerMiddleware = require('./src/middlewares/logger.middleware');
+
+const mainApiRouter = require('./src/routes/');
 const app = express();
 
 const corsOptions = {
@@ -16,9 +20,15 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to News Recommendation API!' });
-});
+//logger middleware
+app.use(loggerMiddleware);
+
+
+app.use('/api/auth', authRoutes);
+
+
+// Error handler must be last
+app.use(errorMiddleware);
 
 app.use('/api/v1', mainApiRouter);
 

@@ -1,4 +1,4 @@
-const { prisma } = require('../config/db.config');
+const prisma = require('../config/db.config');
 
 const create = async (data) => {
     return prisma.user.create({ data });
@@ -13,12 +13,9 @@ const findById = async (id) => {
 };
 
 const updatePassword = async (id, password) => {
-    return prisma.user.update({ where: { id }, data: { password } });
+    return prisma.user.update({ where: { id }, data: { passwordHash : password } });
 };
 
-const updateVerification = async (id, isVerified) => {
-    return prisma.user.update({ where: { id }, data: { isVerified } });
-};
 
 const findAll = async () => {
     return prisma.user.findMany();
@@ -29,6 +26,5 @@ module.exports = {
     findByEmail,
     findById,
     updatePassword,
-    updateVerification,
     findAll,
 };

@@ -32,7 +32,9 @@ class AuthorDTO {
       this.moderationStatus = article.moderationStatus;
       this.createdAt = article.createdAt;
       this.author = article.author ? new AuthorDTO(article.author) : null;
-      this.tags = article.tags ? article.tags.map((tag) => new TagDTO(tag)) : [];
+      this.tags = article.articleTags
+      ? article.articleTags.map((at) => new TagDTO(at.tag))
+      : [];
       this.comments = article.comments
         ? article.comments.map((comment) => new CommentDTO(comment))
         : [];
@@ -47,7 +49,9 @@ class AuthorDTO {
       this.thumbnailUrl = article.thumbnailUrl;
       this.createdAt = article.createdAt;
       this.author = article.author ? new AuthorDTO(article.author) : null;
-      this.tags = article.tags ? article.tags.map((tag) => new TagDTO(tag)) : [];
+      this.tags = article.articleTags
+      ? article.articleTags.map((at) => new TagDTO(at.tag))
+      : [];
     }
   }
   

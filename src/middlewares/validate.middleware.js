@@ -1,9 +1,24 @@
-const AppError = require('../utils/AppError');
+const { BadRequestError } = require('../utils/AppError');
 
 module.exports = (schema) => (req, res, next) => {
-    const { error } = schema.safeParse(req.body);
-    if (error) {
-        return next(new AppError(400, 'Validation error: ' + error.errors[0].message));
-    }
-    next();
+  const result = schema.safeParse({
+    body: req.body,
+    params: req.params,
+    query: req.query,
+  });
+
+  if (!result.success) {
+    const firstError = result.error.errors[0];
+    const errorMessage = `[${firstError.path.join(
+      '.'
+    )}]: ${firstError.message}`;
+
+    return next(new BadRequestError(errorMessage));
+  }
+
+  req.body = result.data.body || req.body;
+  req.params = result.data.params || req.params;
+  req.query = result.data.query || req.query;
+
+  next();
 };

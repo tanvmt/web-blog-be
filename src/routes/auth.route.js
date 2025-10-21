@@ -8,15 +8,19 @@ const adminMiddleware = require('../middlewares/admin.middleware');
 const router = express.Router();
 
 router.post('/register', validateMiddleware(authValidation.register), authController.register);
-router.post('/verify-email', validateMiddleware(authValidation.verifyEmail), authController.verifyEmail);
-router.post('/resend-verification-otp', authMiddleware, validateMiddleware(authValidation.resendOtp), authController.resendVerificationOtp);
+router.post('/register/send-otp', validateMiddleware(authValidation.requestOtp), authController.sendOtpVerifyEmail);
+router.post('/register/verify-otp', validateMiddleware(authValidation.verifyOtp), authController.verifyOtpRegister);
+
 router.post('/login', validateMiddleware(authValidation.login), authController.login);
 router.post('/refresh-token', validateMiddleware(authValidation.refreshToken), authController.refreshToken);
-router.get('/profile', authMiddleware, authController.getProfile);
 router.post('/logout', authMiddleware, authController.logout);
-router.post('/change-password/request-otp', authMiddleware, validateMiddleware(authValidation.requestOtp), authController.requestOtpForChangePassword);
-router.post('/change-password', authMiddleware, validateMiddleware(authValidation.changePassword), authController.changePassword);
 
+router.post('/change-password/send-otp', validateMiddleware(authValidation.requestOtp), authController.sendOtpChangePassword);
+router.post('/change-password/verify-otp', validateMiddleware(authValidation.verifyOtp), authController.verifyOtpChangePassword);
+router.post('/change-password', validateMiddleware(authValidation.changePassword), authController.changePassword);
+
+
+router.get('/profile', authMiddleware, authController.getProfile);
 // Ví dụ route admin-only: List all users
 router.get('/admin/users', authMiddleware, adminMiddleware, authController.listUsers);
 

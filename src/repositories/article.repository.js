@@ -16,65 +16,93 @@ const create = async (articleData, tagsToConnect) => {
 };
 
 const findBySlug = async (slug) => {
-  return prisma.article.findUnique({
-    where: { slug },
-    include: {
-      author: {
-        select: { id: true, username: true, avatarUrl: true },
-      },
-      tags: true,
-      comments: {
-        include: {
-          author: {
-            select: { id: true, username: true, avatarUrl: true },
+    return prisma.article.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: { 
+              id: true, 
+              fullName: true, 
+              avatarUrl: true 
           },
         },
-        orderBy: { createdAt: 'desc' },
+        articleTags: {
+            include: {
+              tag: true,
+            },
+        },
+        comments: {
+          include: {
+            author: {
+              select: { 
+                  id: true, 
+                  fullName: true, 
+                  avatarUrl: true 
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
-    },
-  });
-};
-
-const findAll = async ({ skip, take }) => {
-  return prisma.article.findMany({
-    where: {
-      moderationStatus: 'APPROVED',
-    },
-    include: {
-      author: {
-        select: { id: true, username: true, avatarUrl: true },
+    });
+  };
+  
+  const findAll = async ({ skip, take }) => {
+    return prisma.article.findMany({
+      where: {
+        moderationStatus: 'approved', 
       },
-      tags: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    skip,
-    take,
-  });
-};
-
-const findFeed = async (userId, { skip, take }) => {
-  return prisma.article.findMany({
-    where: {
-      moderationStatus: 'APPROVED',
-      author: {
-        followers: {
-          some: {
-            followerId: userId,
+      include: {
+        author: {
+          select: {
+            id: true,
+            fullName: true, 
+            avatarUrl: true,
+          },
+        },
+        articleTags: {
+            include: {
+              tag: true,
+            },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+  };
+  
+  const findFeed = async (userId, { skip, take }) => {
+    return prisma.article.findMany({
+      where: {
+        moderationStatus: 'approved', 
+        author: {
+          followers: {
+            some: {
+              followerId: userId,
+            },
           },
         },
       },
-    },
-    include: {
-      author: {
-        select: { id: true, username: true, avatarUrl: true },
+      include: {
+        author: {
+          select: {
+            id: true,
+            fullName: true, 
+            avatarUrl: true,
+          },
+        },
+        articleTags: {
+            include: {
+              tag: true,
+            },
+        },
       },
-      tags: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    skip,
-    take,
-  });
-};
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+  };
 
 module.exports = {
   create,

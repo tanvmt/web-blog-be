@@ -1,4 +1,3 @@
-const httpStatus = require('http-status');
 const ApiResponse = require('../utils/ApiResponse');
 const articleService = require('../services/article.service');
 const {
@@ -15,10 +14,10 @@ const createArticle = async (req, res, next) => {
     );
     const articleDTO = new ArticleDetailDTO(article);
     res
-      .status(httpStatus.CREATED)
+      .status(201)
       .json(
         new ApiResponse(
-          httpStatus.CREATED,
+          201, 
           articleDTO,
           'Tạo bài viết thành công, đang chờ duyệt.'
         )
@@ -32,10 +31,10 @@ const uploadMedia = async (req, res, next) => {
   try {
     const data = await articleService.uploadMedia(req.file);
     res
-      .status(httpStatus.CREATED)
+      .status(201) 
       .json(
         new ApiResponse(
-          httpStatus.CREATED,
+          201, 
           data,
           'Upload media thành công.'
         )
@@ -51,9 +50,9 @@ const getArticleBySlug = async (req, res, next) => {
     const article = await articleService.getArticleBySlug(slug);
     const articleDTO = new ArticleDetailDTO(article);
     res
-      .status(httpStatus.OK)
+      .status(200) 
       .json(
-        new ApiResponse(httpStatus.OK, articleDTO, 'Lấy bài viết thành công.')
+        new ApiResponse(200, articleDTO, 'Lấy bài viết thành công.') 
       );
   } catch (error) {
     next(error);
@@ -67,12 +66,13 @@ const getAllArticles = async (req, res, next) => {
       (article) => new ArticleSummaryDTO(article)
     );
     res
-      .status(httpStatus.OK)
+      .status(200) 
       .json(
         new ApiResponse(
-          httpStatus.OK,
+            200,
+            'Lấy danh sách bài viết thành công.',
           articlesDTO,
-          'Lấy danh sách bài viết thành công.'
+          
         )
       );
   } catch (error) {
@@ -90,10 +90,10 @@ const getFeedArticles = async (req, res, next) => {
       (article) => new ArticleSummaryDTO(article)
     );
     res
-      .status(httpStatus.OK)
+      .status(200) 
       .json(
         new ApiResponse(
-          httpStatus.OK,
+          200,
           articlesDTO,
           'Lấy feed thành công.'
         )
