@@ -6,7 +6,7 @@ datasource db {
 
 // Đây là nơi khai báo client sẽ được sinh ra
 generator client {
-  provider = "prisma-client-js"
+  provider = "dbConfig-client-js"
 }
 
 // --- ĐỊNH NGHĨA ENUMS ---
