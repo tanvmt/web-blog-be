@@ -1,4 +1,4 @@
-const { BadRequestError } = require('../utils/AppError');
+const { BadRequestError } = require("../utils/AppError");
 
 module.exports = (schema) => (req, res, next) => {
   const result = schema.safeParse({
@@ -7,11 +7,10 @@ module.exports = (schema) => (req, res, next) => {
     query: req.query,
   });
   if (!result.success) {
-    const firstError = result.error.errors[0];
-    const errorMessage = `[${firstError.path.join(
-      '.'
-    )}]: ${firstError.message}`;
-
+    const firstError = result.error.issues[0];
+    const errorMessage = `[${firstError.path.join(".")}]: ${
+      firstError.message
+    }`;
     return next(new BadRequestError(errorMessage));
   }
 

@@ -1,64 +1,71 @@
 class AuthorDTO {
-    constructor(author) {
-      this.id = author.id;
-      this.username = author.username;
-      this.avatarUrl = author.avatarUrl;
-    }
+  constructor(author) {
+    this.id = author.id;
+    this.fullName = author.fullName;
+    this.avatarUrl = author.avatarUrl;
   }
-  
-  class TagDTO {
-    constructor(tag) {
-      this.id = tag.id;
-      this.name = tag.name;
-    }
+}
+
+class TagDTO {
+  constructor(tag) {
+    this.id = tag.id;
+    this.name = tag.name;
   }
-  
-  class CommentDTO {
-    constructor(comment) {
-      this.id = comment.id;
-      this.content = comment.content;
-      this.createdAt = comment.createdAt;
-      this.author = comment.author ? new AuthorDTO(comment.author) : null;
-    }
+}
+
+class CommentDTO {
+  constructor(comment) {
+    this.id = comment.id;
+    this.content = comment.content;
+    this.createdAt = comment.createdAt;
+    this.author = comment.author ? new AuthorDTO(comment.author) : null;
   }
-  
-  class ArticleDetailDTO {
-    constructor(article) {
-      this.id = article.id;
-      this.title = article.title;
-      this.slug = article.slug;
-      this.content = article.content;
-      this.thumbnailUrl = article.thumbnailUrl;
-        this.moderationStatus = article.moderationStatus;
-        this.readTimeMinutes = article.readTimeMinutes;
-      this.createdAt = article.createdAt;
-        this.author = article.author ? new AuthorDTO(article.author) : null;
-      this.tags = article.articleTags
+}
+
+class ArticleDetailDTO {
+  constructor(article) {
+    this.id = article.id;
+    this.title = article.title;
+    this.slug = article.slug;
+    this.content = article.content;
+    this.thumbnailUrl = article.thumbnailUrl;
+    this.moderationStatus = article.moderationStatus;
+    this.readTimeMinutes = article.readTimeMinutes;
+    this.createdAt = article.createdAt;
+    this.author = article.author ? new AuthorDTO(article.author) : null;
+    this.tags = article.articleTags
       ? article.articleTags.map((at) => new TagDTO(at.tag))
       : [];
-      this.comments = article.comments
-        ? article.comments.map((comment) => new CommentDTO(comment))
-          : [];
-        this.moderationStatus = article.moderationStatus;
-        this.violationReason = article.violationReason || null;
-    }
+    this.comments = article.comments
+      ? article.comments.map((comment) => new CommentDTO(comment))
+      : [];
+    this.likesCount = article._count ? article._count.articleLikes : 0;
+    this.isLiked = article.articleLikes
+      ? article.articleLikes.length > 0
+      : false;
+    this.isBookmarked = article.bookmarks
+      ? article.bookmarks.length > 0
+      : false;
+    this.moderationStatus = article.moderationStatus;
+    this.violationReason = article.violationReason || null;
   }
-  
-  class ArticleSummaryDTO {
-    constructor(article) {
-      this.id = article.id;
-      this.title = article.title;
-      this.slug = article.slug;
-      this.thumbnailUrl = article.thumbnailUrl;
-      this.createdAt = article.createdAt;
-      this.author = article.author ? new AuthorDTO(article.author) : null;
-      this.tags = article.articleTags
+}
+
+class ArticleSummaryDTO {
+  constructor(article) {
+    this.id = article.id;
+    this.title = article.title;
+    this.slug = article.slug;
+    this.thumbnailUrl = article.thumbnailUrl;
+    this.createdAt = article.createdAt;
+    this.author = article.author ? new AuthorDTO(article.author) : null;
+    this.tags = article.articleTags
       ? article.articleTags.map((at) => new TagDTO(at.tag))
       : [];
-    }
   }
-  
-  module.exports = {
-    ArticleDetailDTO,
-    ArticleSummaryDTO,
-  };
+}
+
+module.exports = {
+  ArticleDetailDTO,
+  ArticleSummaryDTO,
+};

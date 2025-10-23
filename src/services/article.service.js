@@ -54,8 +54,8 @@ const uploadMedia = async (file) => {
   return { url: file.location };
 };
 
-const getArticleBySlug = async (slug) => {
-  const article = await articleRepository.findBySlug(slug);
+const getArticleBySlug = async (userId, slug) => {
+  const article = await articleRepository.findBySlug(userId, slug);
   if (!article) {
     throw new NotFoundError('Không tìm thấy bài viết.');
   }
