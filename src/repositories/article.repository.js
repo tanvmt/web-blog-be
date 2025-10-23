@@ -193,7 +193,7 @@ const update = async (id, articleData, tagsToConnect) => {
 };
 
 const remove = async (id) => {
-    const articleId = Number(id);
+  const articleId = Number(id);
   await prisma.articleLike.deleteMany({ where: { articleId: articleId } });
   await prisma.bookmark.deleteMany({ where: { articleId: articleId } });
   await prisma.comment.deleteMany({ where: { articleId: articleId } });
@@ -205,12 +205,76 @@ const remove = async (id) => {
   });
 };
 
+const findRelatedByTags = async (tagIds, excludeId, { skip, take }) => {
+  const whereClause = {
+    moderationStatus: "approved",
+    id: {
+      not: excludeId,
+    },
+    articleTags: {
+      some: {
+        tagId: {
+          in: tagIds,
+        },
+      },
+    },
+  };
+
+  const [articles, totalCount] = await prisma.$transaction([
+    prisma.article.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        articleTags: { include: { tag: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.article.count({ where: whereClause }),
+  ]);
+
+  return { articles, totalCount };
+};
+
+const findByAuthor = async (authorId, excludeId, { skip, take }) => {
+  const whereClause = {
+    moderationStatus: "approved",
+    authorId: authorId,
+    id: {
+      not: excludeId,
+    },
+  };
+
+  const [articles, totalCount] = await prisma.$transaction([
+    prisma.article.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        articleTags: { include: { tag: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.article.count({ where: whereClause }),
+  ]);
+
+  return { articles, totalCount };
+};
+
 module.exports = {
   create,
+  update,
+  remove,
   findBySlug,
   findAll,
   findFeed,
   findById,
-  update,
-  remove,
+  findRelatedByTags,
+  findByAuthor,
 };

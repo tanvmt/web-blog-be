@@ -66,6 +66,20 @@ router.get(
 );
 
 router.get(
+    "/related",
+    auth,
+    validate(articleValidation.getRelatedArticles),
+    articleController.getRelatedArticles
+  );
+  
+  router.get(
+    "/author",
+    auth,
+    validate(articleValidation.getAuthorArticles),
+    articleController.getAuthorArticles
+  );
+
+router.get(
   "/:slug",
   auth,
   validate(articleValidation.getArticleBySlug),

@@ -128,6 +128,49 @@ const deleteArticle = async (req, res, next) => {
   }
 };
 
+const getRelatedArticles = async (req, res, next) => {
+    try {
+      console.log("Fetching related articles with query:", req.query);
+    const { articles, pagination } = await articleService.getRelatedArticles(
+      req.query
+    );
+
+    const articlesDTO = articles.map(
+      (article) => new ArticleSummaryDTO(article)
+    );
+
+    res.status(200).json(
+      new ApiResponse(200, "Lấy danh sách bài viết liên quan thành công.", {
+        articles: articlesDTO,
+        pagination: pagination,
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAuthorArticles = async (req, res, next) => {
+  try {
+    const { articles, pagination } = await articleService.getAuthorArticles(
+      req.query
+    );
+
+    const articlesDTO = articles.map(
+      (article) => new ArticleSummaryDTO(article)
+    );
+
+    res.status(200).json(
+      new ApiResponse(200, "Lấy danh sách bài viết của tác giả thành công.", {
+        articles: articlesDTO,
+        pagination: pagination,
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -136,4 +179,6 @@ module.exports = {
   getArticleBySlug,
   getAllArticles,
   getFeedArticles,
+  getRelatedArticles,
+  getAuthorArticles,
 };
