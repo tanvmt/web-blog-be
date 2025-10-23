@@ -92,7 +92,7 @@ const findAll = async ({ skip, take }) => {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
       skip,
       take,
     }),
@@ -133,7 +133,7 @@ const findFeed = async (userId, { skip, take }) => {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
       skip,
       take,
     }),
@@ -193,14 +193,15 @@ const update = async (id, articleData, tagsToConnect) => {
 };
 
 const remove = async (id) => {
-  await prisma.articleLike.deleteMany({ where: { articleId: id } });
-  await prisma.bookmark.deleteMany({ where: { articleId: id } });
-  await prisma.comment.deleteMany({ where: { articleId: id } });
-  await prisma.articleTag.deleteMany({ where: { articleId: id } });
-  await prisma.notification.deleteMany({ where: { articleId: id } });
+    const articleId = Number(id);
+  await prisma.articleLike.deleteMany({ where: { articleId: articleId } });
+  await prisma.bookmark.deleteMany({ where: { articleId: articleId } });
+  await prisma.comment.deleteMany({ where: { articleId: articleId } });
+  await prisma.articleTag.deleteMany({ where: { articleId: articleId } });
+  await prisma.notification.deleteMany({ where: { articleId: articleId } });
 
   return prisma.article.delete({
-    where: { id },
+    where: { id: articleId },
   });
 };
 

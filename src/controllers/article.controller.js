@@ -122,7 +122,7 @@ const deleteArticle = async (req, res, next) => {
     await articleService.deleteArticle(id, req.user.id);
     res
       .status(200)
-      .json(new ApiResponse(200, null, "Xóa bài viết thành công."));
+      .json(new ApiResponse(200, "Xóa bài viết thành công.", null));
   } catch (error) {
     next(error);
   }
