@@ -4,13 +4,21 @@ const create = async (articleData, tagsToConnect) => {
   return prisma.article.create({
     data: {
       ...articleData,
-      tags: {
-        connectOrCreate: tagsToConnect,
+      articleTags: { 
+        create: tagsToConnect.map((tag) => ({ 
+          tag: { 
+            connectOrCreate: tag,
+          },
+        })),
       },
     },
     include: {
       author: true,
-      tags: true,
+      articleTags: {
+        include: {
+          tag: true,
+        },
+      },
     },
   });
 };
@@ -33,7 +41,7 @@ const findBySlug = async (slug) => {
         },
         comments: {
           include: {
-            author: {
+            user: {
               select: { 
                   id: true, 
                   fullName: true, 
@@ -45,68 +53,148 @@ const findBySlug = async (slug) => {
         },
       },
     });
-  };
+};
   
-  const findAll = async ({ skip, take }) => {
-    return prisma.article.findMany({
-      where: {
-        moderationStatus: 'approved', 
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            fullName: true, 
-            avatarUrl: true,
+const findAll = async ({ skip, take }) => {
+    const whereClause = {
+      moderationStatus: 'approved',
+    };
+  
+    const [articles, totalCount] = await prisma.$transaction([
+      prisma.article.findMany({
+        where: whereClause,
+        include: {
+          author: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
           },
-        },
-        articleTags: {
+          articleTags: {
             include: {
               tag: true,
             },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.article.count({
+        where: whereClause,
+      }),
+    ]);
+  
+    return { articles, totalCount };
+};
+  
+const findFeed = async (userId, { skip, take }) => {
+    const whereClause = {
+      moderationStatus: 'approved',
+      author: {
+        followers: {
+          some: {
+            followerId: userId,
+          },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take,
+    };
+  
+    const [articles, totalCount] = await prisma.$transaction([
+      prisma.article.findMany({
+        where: whereClause,
+        include: {
+          author: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+          articleTags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.article.count({
+        where: whereClause,
+      }),
+    ]);
+  
+    return { articles, totalCount };
+};
+
+const findById = async (id) => { 
+    const articleId = Number(id); 
+
+    if (isNaN(articleId)) {
+        throw new Error('Invalid article ID format.'); 
+    }
+
+    return prisma.article.findUnique({
+        where: {
+            id: articleId 
+        },
     });
-  };
-  
-  const findFeed = async (userId, { skip, take }) => {
-    return prisma.article.findMany({
-      where: {
-        moderationStatus: 'approved', 
-        author: {
-          followers: {
-            some: {
-              followerId: userId,
-            },
-          },
+}
+
+const update = async (id, articleData, tagsToConnect) => {
+    const articleId = Number(id);
+
+    if (isNaN(articleId)) {
+        throw new Error('Invalid article ID format for update.');
+    }
+
+    return prisma.article.update({
+        where: {
+            id: articleId 
         },
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            fullName: true, 
-            avatarUrl: true,
-          },
+        data: {
+            ...articleData,
+            articleTags: {
+                deleteMany: {},
+                create: tagsToConnect.map(tag => ({
+                    tag: {
+                        connectOrCreate: tag
+                    }
+                }))
+            }
         },
-        articleTags: {
-            include: {
-              tag: true,
-            },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take,
+        include: {
+            author: true,
+            articleTags: { 
+                include: {
+                    tag: true
+                }
+            }
+        }
+    });
+};
+
+const remove = async (id) => {
+    await prisma.articleLike.deleteMany({ where: { articleId: id } });
+    await prisma.bookmark.deleteMany({ where: { articleId: id } });
+    await prisma.comment.deleteMany({ where: { articleId: id } });
+    await prisma.articleTag.deleteMany({ where: { articleId: id } });
+    await prisma.notification.deleteMany({ where: { articleId: id } });
+
+    return prisma.article.delete({
+      where: { id },
     });
   };
 
 module.exports = {
-  create,
-  findBySlug,
-  findAll,
-  findFeed,
+    create,
+    findBySlug,
+    findAll,
+    findFeed,
+    findById,
+    update,
+    remove,
 };

@@ -8,7 +8,12 @@ const createArticle = z.object({
     content: z
       .string({ required_error: 'Nội dung là bắt buộc' })
       .min(20, 'Nội dung phải có ít nhất 20 ký tự'),
-    tags: z.string().optional(), 
+    tags: z.string().optional(),
+    readTimeMinutes: z
+      .string()
+      .optional() 
+      .transform((val) => (val ? parseInt(val, 10) : 5))
+      .pipe(z.number().min(1, 'Thời gian đọc phải ít nhất 1 phút')),
   }),
 });
 
@@ -31,8 +36,33 @@ const getArticles = z.object({
   }),
 });
 
+const updateArticle = z.object({
+    params: z.object({
+      id: z.string({ required_error: 'ID bài viết là bắt buộc' }), 
+    }),
+    body: z.object({
+      title: z
+        .string()
+        .min(5, 'Tiêu đề phải có ít nhất 5 ký tự')
+        .optional(),
+      content: z
+        .string()
+        .min(20, 'Nội dung phải có ít nhất 20 ký tự')
+        .optional(),
+      tags: z.string().optional(),
+    }),
+});
+  
+const deleteArticle = z.object({
+    params: z.object({
+      id: z.string({ required_error: 'ID bài viết là bắt buộc' }),
+    }),
+});
+
 module.exports = {
-  createArticle,
-  getArticleBySlug,
-  getArticles,
+    createArticle,
+    updateArticle,
+    deleteArticle,
+    getArticleBySlug,
+    getArticles,
 };

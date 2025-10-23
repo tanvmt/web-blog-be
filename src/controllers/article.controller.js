@@ -17,9 +17,9 @@ const createArticle = async (req, res, next) => {
       .status(201)
       .json(
         new ApiResponse(
-          201, 
-          articleDTO,
-          'Tạo bài viết thành công, đang chờ duyệt.'
+            201, 
+            'Tạo bài viết thành công, đang chờ duyệt.',
+            articleDTO,
         )
       );
   } catch (error) {
@@ -34,9 +34,9 @@ const uploadMedia = async (req, res, next) => {
       .status(201) 
       .json(
         new ApiResponse(
-          201, 
-          data,
-          'Upload media thành công.'
+            201, 
+            'Upload media thành công.',
+            data,
         )
       );
   } catch (error) {
@@ -52,7 +52,7 @@ const getArticleBySlug = async (req, res, next) => {
     res
       .status(200) 
       .json(
-        new ApiResponse(200, articleDTO, 'Lấy bài viết thành công.') 
+        new ApiResponse(200, 'Lấy bài viết thành công.', articleDTO) 
       );
   } catch (error) {
     next(error);
@@ -60,53 +60,94 @@ const getArticleBySlug = async (req, res, next) => {
 };
 
 const getAllArticles = async (req, res, next) => {
-  try {
-    const articles = await articleService.getAllArticles(req.query);
-    const articlesDTO = articles.map(
-      (article) => new ArticleSummaryDTO(article)
-    );
-    res
-      .status(200) 
-      .json(
-        new ApiResponse(
-            200,
-            'Lấy danh sách bài viết thành công.',
-          articlesDTO,
-          
-        )
-      );
-  } catch (error) {
-    next(error);
-  }
+    try {
+        const { articles, pagination } = await articleService.getAllArticles(req.query);
+  
+        const articlesDTO = articles.map(
+            (article) => new ArticleSummaryDTO(article)
+        );
+  
+        res.status(200).json(
+            new ApiResponse(
+                200,
+                'Lấy danh sách bài viết thành công.',
+                {
+                    articles: articlesDTO,
+                    pagination: pagination, 
+                }
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
+  };
+  
+const getFeedArticles = async (req, res, next) => {
+    try {
+        const { articles, pagination } = await articleService.getFeedArticles(req.user.id, req.query);
+  
+        const articlesDTO = articles.map(
+            (article) => new ArticleSummaryDTO(article)
+        );
+  
+        res.status(200).json(
+            new ApiResponse(
+                200,
+                'Lấy feed thành công.',
+                {
+                    articles: articlesDTO,
+                    pagination: pagination, 
+                }
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
 };
 
-const getFeedArticles = async (req, res, next) => {
-  try {
-    const articles = await articleService.getFeedArticles(
-      req.user.id,
-      req.query
-    );
-    const articlesDTO = articles.map(
-      (article) => new ArticleSummaryDTO(article)
-    );
-    res
-      .status(200) 
-      .json(
-        new ApiResponse(
-          200,
-          articlesDTO,
-          'Lấy feed thành công.'
-        )
-      );
-  } catch (error) {
-    next(error);
-  }
+const updateArticle = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const article = await articleService.updateArticle(
+            id,
+            req.user.id,
+            req.body,
+            req.file
+        );
+        const articleDTO = new ArticleDetailDTO(article);
+        res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    'Cập nhật bài viết thành công, đang chờ duyệt.',
+                    articleDTO,
+                )
+        );  
+        
+    } catch (error) {
+      next(error);
+    }
+};
+  
+const deleteArticle = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      await articleService.deleteArticle(id, req.user.id);
+      res
+        .status(200)
+        .json(new ApiResponse(200, null, 'Xóa bài viết thành công.'));
+    } catch (error) {
+      next(error);
+    }
 };
 
 module.exports = {
-  createArticle,
-  uploadMedia,
-  getArticleBySlug,
-  getAllArticles,
-  getFeedArticles,
+    createArticle,
+    updateArticle,
+    deleteArticle,
+    uploadMedia,
+    getArticleBySlug,
+    getAllArticles,
+    getFeedArticles,
 };

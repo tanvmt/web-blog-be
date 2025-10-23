@@ -6,7 +6,6 @@ module.exports = (schema) => (req, res, next) => {
     params: req.params,
     query: req.query,
   });
-
   if (!result.success) {
     const firstError = result.error.errors[0];
     const errorMessage = `[${firstError.path.join(

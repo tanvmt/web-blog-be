@@ -24,13 +24,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggerMiddleware);
 
 
-app.use('/api/auth', authRoutes);
-
+// app.use('/api/auth', authRoutes);
+app.use('/api/v1', mainApiRouter);
 
 // Error handler must be last
 app.use(errorMiddleware);
 
-app.use('/api/v1', mainApiRouter);
+
 
 const PORT = process.env.PORT || 8080;
 

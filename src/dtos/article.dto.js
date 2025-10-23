@@ -29,15 +29,18 @@ class AuthorDTO {
       this.slug = article.slug;
       this.content = article.content;
       this.thumbnailUrl = article.thumbnailUrl;
-      this.moderationStatus = article.moderationStatus;
+        this.moderationStatus = article.moderationStatus;
+        this.readTimeMinutes = article.readTimeMinutes;
       this.createdAt = article.createdAt;
-      this.author = article.author ? new AuthorDTO(article.author) : null;
+        this.author = article.author ? new AuthorDTO(article.author) : null;
       this.tags = article.articleTags
       ? article.articleTags.map((at) => new TagDTO(at.tag))
       : [];
       this.comments = article.comments
         ? article.comments.map((comment) => new CommentDTO(comment))
-        : [];
+          : [];
+        this.moderationStatus = article.moderationStatus;
+        this.violationReason = article.violationReason || null;
     }
   }
   
