@@ -8,23 +8,32 @@ const findByEmail = async (email) => {
     return prisma.user.findUnique({ where: { email } });
 };
 
-const findById = async (id) => {
-    return prisma.user.findUnique({ where: { id } });
-};
-
 const updatePassword = async (id, password) => {
     return prisma.user.update({ where: { id }, data: { passwordHash : password } });
 };
 
 
-const findAll = async () => {
-    return prisma.user.findMany();
+const findById = async (id) => {
+    return prisma.user.findUnique({
+        where: { id },
+        select: { id: true, fullName: true, email: true, bio: true, avatarUrl: true, role: true },
+    });
 };
 
-module.exports = {
-    create,
-    findByEmail,
-    findById,
-    updatePassword,
-    findAll,
+const updateById = async (id, data) => {
+    return prisma.user.update({
+        where: { id },
+        data,
+        select: { fullName: true,  bio: true, avatarUrl: true },
+    });
 };
+
+
+module.exports = {
+    updatePassword,
+    findByEmail,
+    create,
+    findById,
+    updateById,
+};
+

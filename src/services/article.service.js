@@ -231,6 +231,36 @@ const getAuthorArticles = async (query) => {
   return { articles, pagination };
 };
 
+const toggleArticleLike = async (userId, articleIdStr) => {
+  const articleId = parseInt(articleIdStr, 10);
+  if (isNaN(articleId)) {
+    throw new BadRequestError("Article ID không hợp lệ.");
+  }
+
+  const article = await articleRepository.findById(articleId);
+  if (!article) {
+    throw new NotFoundError("Không tìm thấy bài viết.");
+  }
+
+  const result = await interactionRepository.toggleLike(userId, articleId);
+  return result;
+};
+
+const toggleArticleBookmark = async (userId, articleIdStr) => {
+  const articleId = parseInt(articleIdStr, 10);
+  if (isNaN(articleId)) {
+    throw new BadRequestError("Article ID không hợp lệ.");
+  }
+
+  const article = await articleRepository.findById(articleId);
+  if (!article) {
+    throw new NotFoundError("Không tìm thấy bài viết.");
+  }
+
+  const result = await interactionRepository.toggleBookmark(userId, articleId);
+  return result;
+};
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -241,4 +271,6 @@ module.exports = {
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,
+  toggleArticleLike,
+  toggleArticleBookmark,
 };

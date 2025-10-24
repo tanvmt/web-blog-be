@@ -61,7 +61,7 @@ const findBySlug = async (userId, slug) => {
 
 const findAll = async ({ skip, take }) => {
   const whereClause = {
-    moderationStatus: "approved",
+    moderationStatus: "public",
   };
 
   const [articles, totalCount] = await prisma.$transaction([
@@ -101,7 +101,7 @@ const findAll = async ({ skip, take }) => {
 
 const findFeed = async (userId, { skip, take }) => {
   const whereClause = {
-    moderationStatus: "approved",
+    moderationStatus: "public",
     author: {
       followers: {
         some: {
@@ -208,7 +208,7 @@ const remove = async (id) => {
 
 const findRelatedByTags = async (tagIds, excludeId, { skip, take }) => {
   const whereClause = {
-    moderationStatus: "approved",
+    moderationStatus: "public",
     id: {
       not: excludeId,
     },
@@ -242,7 +242,7 @@ const findRelatedByTags = async (tagIds, excludeId, { skip, take }) => {
 
 const findByAuthor = async (authorId, excludeId, { skip, take }) => {
   const whereClause = {
-    moderationStatus: "approved",
+    moderationStatus: "public",
     authorId: authorId,
     id: {
       not: excludeId,

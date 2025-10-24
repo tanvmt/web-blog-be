@@ -15,9 +15,10 @@ enum Role {
 }
 
 enum ModerationStatus {
-  pending
-  approved
-  rejected
+  public
+  private
+  hidden_by_admin
+  deleted
 }
 
 enum InteractionAction {
@@ -33,7 +34,9 @@ enum NotificationType {
   comment
   follow
   new_article_from_followed
-  report_result
+  article_hidden_by_admin
+  appeal_approved
+  appeal_rejected
 }
 
 enum ReportSource {
@@ -43,9 +46,17 @@ enum ReportSource {
 
 enum ReportStatus {
   pending
-  reviewed
   dismissed
   confirmed
+}
+
+enum ReportCategory {
+  spam
+  hate_speech
+  adult_content
+  violence
+  fake_news
+  other
 }
 
 enum ReportAction {
@@ -55,17 +66,24 @@ enum ReportAction {
   ban_user
 }
 
+enum AppealStatus {
+  pending
+  approved
+  rejected
+}
+
 // --- ĐỊNH NGHĨA MODELS ---
 
 model User {
   id           Int      @id @default(autoincrement())
-  fullName     String?  @db.VarChar(100)
+  fullName     String?  @map("full_name") @db.VarChar(100)
   email        String   @unique @db.VarChar(150)
   passwordHash String   @map("password_hash") @db.VarChar(255)
   bio          String?  @db.Text
   avatarUrl    String?  @map("avatar_url") @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
   role         Role     @default(user)
+  isActive     Boolean  @default(true) @map("is_active")
 
   // Quan hệ
   articles          Article[] // Các bài viết của user
@@ -75,10 +93,11 @@ model User {
   sentNotifications Notification[]           @relation("ActorNotifications")
   sentReports       ArticleReport[]          @relation("ReporterReports")
   handledReports    ArticleReport[]          @relation("AdminReports")
-
+  sentAppeals       ArticleAppeal[]          @relation("AuthorAppeals")
+  handledAppeals    ArticleAppeal[]          @relation("AdminAppeals")
   // Quan hệ Follows (Many-to-Many)
-  followers Follow[] @relation("Following") // Danh sách người follow mình
-  following Follow[] @relation("Followers") // Danh sách mình follow
+  followers         Follow[]                 @relation("Following") // Danh sách người follow mình
+  following         Follow[]                 @relation("Followers") // Danh sách mình follow
 
   // Quan hệ Likes (Many-to-Many với cột phụ)
   articleLikes ArticleLike[]
@@ -99,7 +118,7 @@ model Article {
   slug             String           @unique @db.VarChar(255)
   thumbnailUrl     String           @map("thumbnail_url") @db.VarChar(255)
   readTimeMinutes  Int              @map("read_time_minutes")
-  moderationStatus ModerationStatus @default(pending) @map("moderation_status")
+  moderationStatus ModerationStatus @default(public) @map("moderation_status")
   violationReason  String?          @map("violation_reason") @db.Text
 
   // Quan hệ
@@ -111,6 +130,7 @@ model Article {
   interactions  UserArticleInteraction[]
   notifications Notification[]
   reports       ArticleReport[]
+  appeals       ArticleAppeal[]
 
   @@map("articles")
 }
@@ -223,7 +243,7 @@ model Notification {
   type        NotificationType
   articleId   Int?             @map("article_id")
   commentId   Int?             @map("comment_id")
-  message     String           @db.Text
+  metadata    Json?            @db.Json
   isRead      Boolean          @default(false) @map("is_read")
   createdAt   DateTime         @default(now()) @map("created_at")
 
@@ -237,17 +257,17 @@ model Notification {
 }
 
 model ArticleReport {
-  id           Int          @id @default(autoincrement())
-  articleId    Int          @map("article_id")
-  reporterId   Int?         @map("reporter_id")
+  id           Int            @id @default(autoincrement())
+  articleId    Int            @map("article_id")
+  reporterId   Int?           @map("reporter_id")
   source       ReportSource
-  reason       String       @db.Text
-  aiConfidence Float?       @map("ai_confidence")
-  status       ReportStatus @default(pending)
-  adminId      Int?         @map("admin_id")
-  actionTaken  ReportAction @default(none) @map("action_taken")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  reviewedAt   DateTime?    @map("reviewed_at")
+  reason       String         @db.Text
+  category     ReportCategory
+  aiConfidence Float?         @map("ai_confidence")
+  status       ReportStatus   @default(pending)
+  adminId      Int?           @map("admin_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  reviewedAt   DateTime?      @map("reviewed_at")
 
   // Quan hệ
   article  Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
@@ -255,4 +275,23 @@ model ArticleReport {
   admin    User?   @relation("AdminReports", fields: [adminId], references: [id], onDelete: SetNull)
 
   @@map("article_reports")
+}
+
+model ArticleAppeal {
+  id              Int          @id @default(autoincrement())
+  articleId       Int          @map("article_id")
+  authorId        Int          @map("author_id")
+  appealNote      String       @map("appeal_note") @db.Text
+  status          AppealStatus @default(pending)
+  adminId         Int?         @map("admin_id")
+  adminReviewNote String?      @map("admin_review_note") @db.Text
+  createdAt       DateTime     @default(now()) @map("created_at")
+  reviewedAt      DateTime?    @map("reviewed_at")
+
+  // Quan hệ
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author  User    @relation("AuthorAppeals", fields: [authorId], references: [id], onDelete: Cascade)
+  admin   User?   @relation("AdminAppeals", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@map("article_appeals")
 }

@@ -1,12 +1,17 @@
 const authService = require('../services/auth.service');
 const ApiResponse = require('../utils/ApiResponse');
-const UserDTO = require('../dtos/auth.dto');
+const {LoginDTO, RefreshTokenDTO} = require('../dtos/auth.dto');
+
 
 const register = async (req, res, next) => {
-    try {
-        const user = await authService.register(req.body);
-        const userDto = UserDTO.fromEntity(user);
-        res.status(201).json(new ApiResponse(true, 'User registered successfully', {user: userDto}));
+    try{
+        const { user, accessToken, refreshToken } = await authService.register(req.body);
+        const response = new LoginDTO({
+            accessToken,
+            refreshToken,
+            user });
+        res.status(201)
+            .json(new ApiResponse(true, 'User registered successfully', response));
     } catch (error) {
         next(error);
     }
@@ -15,8 +20,12 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
     try {
         const { user, accessToken, refreshToken } = await authService.login(req.body);
-        const userDto = UserDTO.fromEntity(user);
-        res.status(200).json(new ApiResponse(true, 'Login successful', { user: userDto, accessToken, refreshToken }));
+        const response = new LoginDTO({
+            accessToken,
+            refreshToken,
+            user});
+        res.status(200)
+            .json(new ApiResponse(true, 'Login successful', response ));
     } catch (error) {
         next(error);
     }
@@ -25,21 +34,14 @@ const login = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
     try {
         const { accessToken } = await authService.refreshToken(req.body.refreshToken);
-        res.status(200).json(new ApiResponse(true, 'Token refreshed', { accessToken }));
+        const response = new RefreshTokenDTO({ accessToken });
+        res.status(200)
+            .json(new ApiResponse(true, 'Token refreshed', response));
     } catch (error) {
         next(error);
     }
 };
 
-const getProfile = async (req, res, next) => {
-    try {
-        const user = await authService.getProfile(req.user.id);
-        const userDto = UserDTO.fromEntity(user);
-        res.status(200).json(new ApiResponse(true, 'Profile fetched', {user: userDto}));
-    } catch (error) {
-        next(error);
-    }
-};
 
 const logout = async (req, res, next) => {
     try {
@@ -93,15 +95,7 @@ const verifyOtpRegister = async (req, res, next) => {
     }
 }
 
-const listUsers = async (req, res, next) => {
-    try {
-        const users = await authService.listUsers();
-        const usersDto = users.map(user => UserDTO.fromEntity(user));
-        res.status(200).json(new ApiResponse(true, 'Users listed', {users: usersDto}));
-    } catch (error) {
-        next(error);
-    }
-};
+
 
 module.exports = {
     register,
@@ -112,7 +106,5 @@ module.exports = {
     verifyOtpChangePassword,
     sendOtpChangePassword,
     sendOtpVerifyEmail,
-    changePassword,
-    getProfile,
-    listUsers,
+    changePassword
 };

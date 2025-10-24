@@ -1,14 +1,13 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/user.repository');
 const redisClient = require('../config/redis.config');
-const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { generateAccessToken,generateRefreshToken, verifyRefreshToken } = require('../utils/jwt.util');
 const {UnauthorizedError,  NotFoundError, ConflictError, BadRequestError} = require("../utils/AppError");
 const sendEmail = require("../utils/email.utils");
 
 
-const register = async ({ fullname, email, password }) => {
+const register = async ({ fullName, email, password }) => {
     const verifiedKey = `verified:email:${email}`;
     const isVerified = await redisClient.get(verifiedKey);
     if (!isVerified) {
@@ -21,11 +20,15 @@ const register = async ({ fullname, email, password }) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await userRepository.create({ fullname, email, passwordHash: hashedPassword});
+    const user = await userRepository.create({ fullName, email, passwordHash: hashedPassword});
 
     await redisClient.del(verifiedKey);
     logger.info(`User registered: ${user.id}`);
-    return user;
+
+    const accessToken = await generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user);
+
+    return { user, accessToken, refreshToken };
 };
 
 const login = async ({ email, password }) => {
@@ -116,18 +119,7 @@ const verifyOtp = async (email, otp, type) => {
         await redisClient.set(`verified:email:${email}`, 'true', 'EX', 300); // 5 phút
     }
 };
-const listUsers = async () => {
-    return await userRepository.findAll();
-};
 
-
-const getProfile = async (userId) => {
-    const user = await userRepository.findById(userId);
-    if (!user) {
-        throw new NotFoundError( 'User not found');
-    }
-    return user;
-};
 module.exports = {
     register,
     login,
@@ -135,7 +127,5 @@ module.exports = {
     logout,
     changePassword,
     sendOtp,
-    getProfile,
-    listUsers,
     verifyOtp
 };
