@@ -63,7 +63,37 @@ const createComment = async (userId, body) => {
   return newComment;
 };
 
+const updateComment = async (commentId, userId, newContent) => {
+  const comment = await commentRepository.findById(commentId);
+  if (!comment) {
+    throw new NotFoundError("Không tìm thấy bình luận.");
+  }
+
+  if (comment.userId !== userId) {
+    throw new ForbiddenError("Bạn không có quyền sửa bình luận này.");
+  }
+
+  const updatedComment = await commentRepository.update(commentId, newContent);
+  return updatedComment;
+};
+
+const deleteComment = async (commentId, userId) => {
+  const comment = await commentRepository.findById(commentId);
+  if (!comment) {
+    throw new NotFoundError("Không tìm thấy bình luận.");
+  }
+
+  if (comment.userId !== userId) {
+    throw new ForbiddenError("Bạn không có quyền xóa bình luận này.");
+  }
+
+  await commentRepository.remove(commentId);
+  return { id: commentId, parentId: comment.parentId };
+};
+
 module.exports = {
   getCommentsByArticle,
   createComment,
+  updateComment,
+  deleteComment,
 };

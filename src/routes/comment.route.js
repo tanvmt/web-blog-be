@@ -20,4 +20,18 @@ router.post(
   commentController.createComment
 );
 
+router.put(
+  "/:id",
+  auth,
+  validate(commentValidation.updateComment),
+  commentController.updateComment
+);
+
+router.delete(
+  "/:id",
+  auth,
+  validate(commentValidation.deleteComment),
+  commentController.deleteComment
+);
+
 module.exports = router;
