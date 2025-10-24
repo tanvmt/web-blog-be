@@ -12,16 +12,6 @@ class TagDTO {
     this.name = tag.name;
   }
 }
-
-class CommentDTO {
-  constructor(comment) {
-    this.id = comment.id;
-    this.content = comment.content;
-    this.createdAt = comment.createdAt;
-    this.author = comment.author ? new AuthorDTO(comment.author) : null;
-  }
-}
-
 class ArticleDetailDTO {
   constructor(article) {
     this.id = article.id;
@@ -46,6 +36,7 @@ class ArticleDetailDTO {
     this.isBookmarked = article.bookmarks
       ? article.bookmarks.length > 0
       : false;
+    this.commentsCount = article._count ? article._count.comments : 0;
     this.moderationStatus = article.moderationStatus;
     this.violationReason = article.violationReason || null;
   }
@@ -62,6 +53,14 @@ class ArticleSummaryDTO {
     this.tags = article.articleTags
       ? article.articleTags.map((at) => new TagDTO(at.tag))
       : [];
+    this.likesCount = article._count ? article._count.articleLikes : 0;
+    this.isLiked = article.articleLikes
+      ? article.articleLikes.length > 0
+      : false;
+    this.isBookmarked = article.bookmarks
+      ? article.bookmarks.length > 0
+      : false;
+    this.commentsCount = article._count ? article._count.comments : 0;
   }
 }
 

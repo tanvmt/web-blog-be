@@ -39,21 +39,10 @@ const findBySlug = async (userId, slug) => {
           tag: true,
         },
       },
-      comments: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              avatarUrl: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
       _count: {
         select: {
           articleLikes: true,
+          comments: true,
         },
       },
       articleLikes: userId
@@ -89,6 +78,12 @@ const findAll = async ({ skip, take }) => {
         articleTags: {
           include: {
             tag: true,
+          },
+        },
+        _count: {
+          select: {
+            articleLikes: true,
+            comments: true,
           },
         },
       },
@@ -130,6 +125,12 @@ const findFeed = async (userId, { skip, take }) => {
         articleTags: {
           include: {
             tag: true,
+          },
+        },
+        _count: {
+          select: {
+            articleLikes: true,
+            comments: true,
           },
         },
       },
