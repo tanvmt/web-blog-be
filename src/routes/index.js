@@ -1,14 +1,14 @@
-// src/routes/index.js
-const express = require('express');
-const authRoute = require('./auth.route');
-const articleRoute = require('./article.routes');
-const userRoute = require('./user.route');
+const express = require("express");
+const authRoute = require("./auth.route");
+const articleRoute = require("./article.routes");
+const commentRoute = require("./comment.route");
+const userRoute = require("./user.route");
 
 const router = express.Router();
 
 const defaultRoutes = [
   {
-    path: '/auth',
+    path: "/auth",
     route: authRoute,
   },
   {
@@ -16,8 +16,12 @@ const defaultRoutes = [
     route: userRoute,
   },
   {
-    path: '/articles',
-    route: articleRoute, 
+    path: "/articles",
+    route: articleRoute,
+  },
+  {
+    path: "/comments",
+    route: commentRoute,
   },
 ];
 
