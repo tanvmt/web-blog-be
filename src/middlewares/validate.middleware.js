@@ -7,8 +7,9 @@ module.exports = (schema) => (req, res, next) => {
     query: req.query,
   });
 
+
   if (!result.success) {
-    const firstError = result.error.errors[0];
+    const firstError = result.error.issues[0];
     const errorMessage = `[${firstError.path.join(
       '.'
     )}]: ${firstError.message}`;
@@ -19,6 +20,5 @@ module.exports = (schema) => (req, res, next) => {
   req.body = result.data.body || req.body;
   req.params = result.data.params || req.params;
   req.query = result.data.query || req.query;
-
   next();
 };

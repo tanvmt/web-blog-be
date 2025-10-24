@@ -1,14 +1,20 @@
-class UserDTO {
-    constructor({ id, name, email, role, isVerified }) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.role = role;
-    }
+const { UserResponseDTO } = require("./user.dto");
 
-    static fromEntity(entity) {
-        return new UserDTO(entity);
+class LoginDTO {
+    constructor({ accessToken, refreshToken, user }) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        // tái sử dụng UserResponseDTO
+        this.user = new UserResponseDTO(user);
     }
 }
 
-module.exports = UserDTO;
+class RefreshTokenDTO {
+    constructor({ accessToken }) {
+        this.accessToken = accessToken;
+    }
+}
+module.exports = {
+    LoginDTO,
+    RefreshTokenDTO
+};

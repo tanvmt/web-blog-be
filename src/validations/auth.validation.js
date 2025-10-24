@@ -2,7 +2,7 @@ const z = require('zod');
   
 const register = z.object({
     body: z.object({
-        name: z.string().min(1),
+        fullName: z.string().min(1),
         email: z.email(),
         password: z.string().min(8),
     }),
