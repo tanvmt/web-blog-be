@@ -47,17 +47,49 @@ const findBySlug = async (userId, slug) => {
       },
       articleLikes: userId
         ? {
-            where: { userId },
-          }
+          where: { userId },
+        }
         : false,
       bookmarks: userId
         ? {
-            where: { userId },
-          }
+          where: { userId },
+        }
         : false,
     },
   });
 };
+
+const findByIds = async (userId, articleIds) => {
+  return prisma.article.findMany({
+    where: {
+      id: { in: articleIds },
+      moderationStatus: "public",
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+        },
+      },
+      articleTags: {
+        include: { tag: true },
+      },
+      _count: {
+        select: { articleLikes: true, comments: true },
+      },
+      articleLikes: userId
+        ? { where: { userId }, select: { userId: true } }
+        : false,
+      bookmarks: userId
+        ? { where: { userId }, select: { userId: true } }
+        : false,
+    },
+  });
+};
+
+
 
 const findAll = async ({ skip, take }) => {
   const whereClause = {
@@ -276,6 +308,7 @@ module.exports = {
   findAll,
   findFeed,
   findById,
+  findByIds,
   findRelatedByTags,
   findByAuthor,
 };

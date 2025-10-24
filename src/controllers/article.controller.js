@@ -49,9 +49,33 @@ const getArticleBySlug = async (req, res, next) => {
   }
 };
 
+// Bỏ hàm này nếu đã thay thể bởi getRecommendedArticles
 const getAllArticles = async (req, res, next) => {
+
   try {
     const { articles, pagination } = await articleService.getAllArticles(
+      req.query
+    );
+
+    const articlesDTO = articles.map(
+      (article) => new ArticleSummaryDTO(article)
+    );
+
+    res.status(200).json(
+      new ApiResponse(200, "Lấy danh sách bài viết thành công.", {
+        articles: articlesDTO,
+        pagination: pagination,
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const getRecommendedArticles = async (req, res, next) => {
+  try {
+    const { articles, pagination } = await articleService.getRecommendedArticles(
       req.query
     );
 
@@ -178,6 +202,7 @@ module.exports = {
   uploadMedia,
   getArticleBySlug,
   getAllArticles,
+  getRecommendedArticles,
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,
