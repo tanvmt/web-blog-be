@@ -5,6 +5,8 @@ const {
   NotFoundError,
   ForbiddenError,
 } = require("../utils/AppError");
+const { default: axios } = require("axios");
+const { ar } = require("zod/locales");
 
 const createArticle = async (body, userId, file) => {
   if (!file) {
@@ -82,6 +84,43 @@ const getAllArticles = async (query) => {
 
   return { articles, pagination };
 };
+
+const getRecommendedArticles = async (query) => {
+  const userId = parseInt(query.userId); 
+  const page = parseInt(query.page) || 1;
+  const limit = parseInt(query.limit) || 10;
+
+  if (!userId) throw new BadRequestError("User ID là bắt buộc.");
+
+  try {
+    const rcmApi = `http://localhost:5000/articles/recommend`;
+    const response = await axios.get(rcmApi, {
+      params: { user: userId, page, size: limit },
+    });
+
+    const articles = response.data.data.results;
+    const articleIds = articles.map((a) => a.id);
+
+    const resultArticles = await articleRepository.findByIds(userId, articleIds);
+
+    const orderedArticles = articleIds
+      .map((id) => resultArticles.find((a) => a.id === id))
+      .filter(Boolean);
+
+    const pagination = {
+      currentPage: page,
+      limit,
+      totalCount: 1000, // giả sử tổng số bài viết là 1000
+      totalPages: 10,
+    };
+
+    return { articles: orderedArticles, pagination };
+  } catch (error) {
+    console.error("Error calling Python service:", error.message);
+    throw error;
+  }
+};
+
 
 const getFeedArticles = async (userId, query) => {
   const page = parseInt(query.page) || 1;
@@ -268,6 +307,7 @@ module.exports = {
   uploadMedia,
   getArticleBySlug,
   getAllArticles,
+  getRecommendedArticles,
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,

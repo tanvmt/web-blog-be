@@ -66,18 +66,27 @@ router.get(
 );
 
 router.get(
-    "/related",
-    auth,
-    validate(articleValidation.getRelatedArticles),
-    articleController.getRelatedArticles
-  );
-  
-  router.get(
-    "/author",
-    auth,
-    validate(articleValidation.getAuthorArticles),
-    articleController.getAuthorArticles
-  );
+  "/related",
+  auth,
+  validate(articleValidation.getRelatedArticles),
+  articleController.getRelatedArticles
+);
+
+router.get(
+  "/author",
+  auth,
+  validate(articleValidation.getAuthorArticles),
+  articleController.getAuthorArticles
+);
+
+
+router.get(
+  "/recommend",
+  auth,
+  validate(articleValidation.getRecommendedArticles),
+  articleController.getRecommendedArticles
+);
+
 
 router.get(
   "/:slug",
@@ -86,11 +95,17 @@ router.get(
   articleController.getArticleBySlug
 );
 
+
+
 router.get(
   "/",
   auth,
   validate(articleValidation.getArticles),
   articleController.getAllArticles
 );
+
+
+
+
 
 module.exports = router;
