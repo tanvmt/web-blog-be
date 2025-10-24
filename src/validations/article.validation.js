@@ -96,6 +96,14 @@ const getAuthorArticles = z.object({
   }),
 });
 
+const interactArticle = z.object({
+  params: z.object({
+    id: z
+      .string({ required_error: "ID bài viết là bắt buộc" })
+      .regex(/^\d+$/, "ID bài viết phải là một số"),
+  }),
+});
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -104,4 +112,5 @@ module.exports = {
   getArticles,
   getRelatedArticles,
   getAuthorArticles,
+  interactArticle,
 };

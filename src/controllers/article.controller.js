@@ -1,6 +1,7 @@
 const ApiResponse = require("../utils/ApiResponse");
 const articleService = require("../services/article.service");
 const { ArticleDetailDTO, ArticleSummaryDTO } = require("../dtos/article.dto");
+const asyncHandler = require("../utils/asyncHandler");
 
 const createArticle = async (req, res, next) => {
   try {
@@ -52,6 +53,7 @@ const getArticleBySlug = async (req, res, next) => {
 const getAllArticles = async (req, res, next) => {
   try {
     const { articles, pagination } = await articleService.getAllArticles(
+      req.user.id,
       req.query
     );
 
@@ -129,8 +131,8 @@ const deleteArticle = async (req, res, next) => {
 };
 
 const getRelatedArticles = async (req, res, next) => {
-    try {
-      console.log("Fetching related articles with query:", req.query);
+  try {
+    console.log("Fetching related articles with query:", req.query);
     const { articles, pagination } = await articleService.getRelatedArticles(
       req.query
     );
@@ -171,6 +173,28 @@ const getAuthorArticles = async (req, res, next) => {
   }
 };
 
+const toggleLike = asyncHandler(async (req, res) => {
+  const { id: articleId } = req.params;
+  const { id: userId } = req.user;
+
+  const result = await articleService.toggleArticleLike(userId, articleId);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Cập nhật like thành công.", result));
+});
+
+const toggleBookmark = asyncHandler(async (req, res) => {
+  const { id: articleId } = req.params;
+  const { id: userId } = req.user;
+
+  const result = await articleService.toggleArticleBookmark(userId, articleId);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Cập nhật bookmark thành công.", result));
+});
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -181,4 +205,6 @@ module.exports = {
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,
+  toggleLike,
+  toggleBookmark,
 };

@@ -1,4 +1,3 @@
-// src/routes/article.route.js
 const express = require("express");
 const articleController = require("../controllers/article.controller");
 const auth = require("../middlewares/auth.middleware");
@@ -66,18 +65,32 @@ router.get(
 );
 
 router.get(
-    "/related",
-    auth,
-    validate(articleValidation.getRelatedArticles),
-    articleController.getRelatedArticles
-  );
-  
-  router.get(
-    "/author",
-    auth,
-    validate(articleValidation.getAuthorArticles),
-    articleController.getAuthorArticles
-  );
+  "/related",
+  auth,
+  validate(articleValidation.getRelatedArticles),
+  articleController.getRelatedArticles
+);
+
+router.get(
+  "/author",
+  auth,
+  validate(articleValidation.getAuthorArticles),
+  articleController.getAuthorArticles
+);
+
+router.post(
+  "/:id/like",
+  auth,
+  validate(articleValidation.interactArticle),
+  articleController.toggleLike
+);
+
+router.post(
+  "/:id/bookmark",
+  auth,
+  validate(articleValidation.interactArticle),
+  articleController.toggleBookmark
+);
 
 router.get(
   "/:slug",

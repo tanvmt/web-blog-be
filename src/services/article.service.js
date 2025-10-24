@@ -1,4 +1,5 @@
 const articleRepository = require("../repositories/article.repository");
+const interactionRepository = require("../repositories/interaction.repopsitory");
 const slugify = require("../utils/slugify");
 const {
   BadRequestError,
@@ -62,12 +63,12 @@ const getArticleBySlug = async (userId, slug) => {
   return article;
 };
 
-const getAllArticles = async (query) => {
+const getAllArticles = async (userId, query) => {
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const { articles, totalCount } = await articleRepository.findAll({
+  const { articles, totalCount } = await articleRepository.findAll(userId, {
     skip,
     take: limit,
   });
