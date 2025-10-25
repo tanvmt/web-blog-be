@@ -7,6 +7,7 @@ const {
 } = require("../utils/AppError");
 const { default: axios } = require("axios");
 const { ar } = require("zod/locales");
+const { AuthorDTO } = require("../dtos/article.dto");
 
 const createArticle = async (body, userId, file) => {
   if (!file) {
@@ -117,9 +118,46 @@ const getRecommendedArticles = async (query) => {
     return { articles: orderedArticles, pagination };
   } catch (error) {
     console.error("Error calling Python service:", error.message);
-    throw error;
+    throw BadRequestError("Lỗi khi lấy bài viết gợi ý từ python service.");
   }
 };
+
+
+const getSearchArticles = async ({ query, page, limit, userId }) => {
+  try {
+    const rcmApi = `http://localhost:5000/articles/search/knn`;
+    const response = await axios.get(rcmApi, {
+      params: { key: query, page, size: limit },
+    });
+
+    if (response.data.status === "error") {
+      throw new BadRequestError(response.data.error.message);
+    }
+
+    const articleIds = response.data.data.results.map((a) => a.id);
+    const dbArticles = await articleRepository.findByIds(userId, articleIds);
+
+    const orderedArticles = articleIds
+      .map((id) => dbArticles.find((a) => a.id === id))
+      .filter(Boolean);
+
+    const authorsMap = {};
+    orderedArticles.forEach((article) => {
+      if (article.author) {
+        authorsMap[article.author.id] = new AuthorDTO(article.author);
+      }
+    });
+
+
+    return { articles: orderedArticles, authors: authorsMap };
+  } catch (error) {
+    console.error("Error calling Python service:", error.message);
+    throw new BadRequestError("Lỗi khi lấy bài viết tìm kiếm từ Python service.");
+  }
+};
+
+
+
 
 
 const getFeedArticles = async (userId, query) => {
@@ -308,6 +346,7 @@ module.exports = {
   getArticleBySlug,
   getAllArticles,
   getRecommendedArticles,
+  getSearchArticles,
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,

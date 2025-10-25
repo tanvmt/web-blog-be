@@ -49,6 +49,22 @@ const getRecommendedArticles = z.object({
   }),
 });
 
+const getSearchArticles = z.object({
+  query: z.object({
+    page: z.preprocess(
+      (val) => (val ? parseInt(val, 10) : 1),
+      z.number().min(1).default(1)
+    ),
+    limit: z.preprocess(
+      (val) => (val ? parseInt(val, 10) : 10),
+      z.number().min(1).max(100).default(10)
+    ),
+    // query: z.preprocess(
+    //   (val) => (val ? String(val) : "" ),
+    // )
+  }),
+});
+
 const updateArticle = z.object({
   params: z.object({
     id: z.string({ required_error: "ID bài viết là bắt buộc" }),
@@ -116,6 +132,7 @@ module.exports = {
   getArticleBySlug,
   getArticles,
   getRecommendedArticles,
+  getSearchArticles,
   getRelatedArticles,
   getAuthorArticles,
 };

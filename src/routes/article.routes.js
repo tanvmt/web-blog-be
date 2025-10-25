@@ -87,6 +87,13 @@ router.get(
   articleController.getRecommendedArticles
 );
 
+router.get(
+  "/search/knn",
+  auth,
+  validate(articleValidation.getSearchArticles),
+  articleController.getSearchArticles
+);
+
 
 router.get(
   "/:slug",
