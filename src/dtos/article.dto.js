@@ -2,7 +2,7 @@ class AuthorDTO {
   constructor(author) {
     this.id = author.id;
     this.fullName = author.fullName;
-    this.avatarUrl = author.avatarUrl;
+    this.avatarUrl = author.avatarUrl || null;
   }
 }
 
@@ -64,7 +64,23 @@ class ArticleSummaryDTO {
   }
 }
 
+
+class ArticleCompactDTO {
+  constructor(article) {
+    this.id = article.id;
+    this.title = article.title;
+    this.content = article.content;
+    this.publishedAt = article.createdAt;
+    this.likeCount = article._count?.articleLikes || 0;
+    this.userId = article.author?.id || null;
+    this.thumbnailUrl = article.thumbnailUrl || null;
+  }
+}
+
+
 module.exports = {
   ArticleDetailDTO,
   ArticleSummaryDTO,
+  ArticleCompactDTO,
+  AuthorDTO,
 };
