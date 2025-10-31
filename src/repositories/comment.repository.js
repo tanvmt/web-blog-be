@@ -14,16 +14,33 @@ const findByArticleId = async (articleId, { skip, take }) => {
         user: {
           select: { id: true, fullName: true, avatarUrl: true },
         },
-        replies: {
-          include: {
-            user: {
-              select: { id: true, fullName: true, avatarUrl: true },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-        },
+        _count: { select: { replies: true } },
       },
       orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.comment.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return { comments, totalCount };
+};
+
+const findRepliesByParentId = async ({ parentId, skip, take }) => {
+  const whereClause = { parentId: parentId };
+
+  const [comments, totalCount] = await prisma.$transaction([
+    prisma.comment.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        _count: { select: { replies: true } },
+      },
+      orderBy: { createdAt: "asc" },
       skip,
       take,
     }),
@@ -98,6 +115,7 @@ const remove = async (id) => {
 
 module.exports = {
   findByArticleId,
+  findRepliesByParentId,
   create,
   findById,
   update,

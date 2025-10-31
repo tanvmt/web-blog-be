@@ -78,6 +78,14 @@ router.get(
   articleController.getAuthorArticles
 );
 
+router.get(
+    "/recommend",
+    auth,
+    validate(articleValidation.getRecommendedArticles),
+    articleController.getRecommendedArticles
+  );
+
+
 router.post(
   "/:id/like",
   auth,
@@ -98,6 +106,8 @@ router.get(
   validate(articleValidation.getArticleBySlug),
   articleController.getArticleBySlug
 );
+
+
 
 router.get(
   "/",

@@ -27,6 +27,25 @@ const getComments = z.object({
   }),
 });
 
+const getReplies = z.object({
+  params: z.object({
+    id: z.preprocess(
+      (val) => parseInt(val, 10),
+      z.number().int().min(1, "ID bình luận cha là bắt buộc")
+    ),
+  }),
+  query: z.object({
+    page: z.preprocess(
+      (val) => (val ? parseInt(val, 10) : 1),
+      z.number().min(1).default(1)
+    ),
+    limit: z.preprocess(
+      (val) => (val ? parseInt(val, 10) : 5),
+      z.number().min(1).max(100).default(5)
+    ),
+  }),
+});
+
 const updateComment = z.object({
   params: z.object({
     id: z.preprocess(
@@ -53,6 +72,7 @@ const deleteComment = z.object({
 module.exports = {
   createComment,
   getComments,
+  getReplies,
   updateComment,
   deleteComment,
 };

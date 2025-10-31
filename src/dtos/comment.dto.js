@@ -14,6 +14,7 @@ class CommentDTO {
     this.isAuthor = comment.isAuthor;
     this.parentId = comment.parentId;
     this.author = comment.user ? new AuthorDTO(comment.user) : null;
+    this.replyCount = comment._count?.replies ?? 0;
     this.replies =
       comment.replies && Array.isArray(comment.replies)
         ? comment.replies.map((reply) => new CommentDTO(reply))

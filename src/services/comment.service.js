@@ -1,6 +1,7 @@
 const commentRepository = require("../repositories/comment.repository");
 const articleRepository = require("../repositories/article.repository");
 const { NotFoundError, BadRequestError } = require("../utils/AppError");
+const notificationService = require("./notification.service");
 
 const getCommentsByArticle = async (query) => {
   const articleId = parseInt(query.articleId, 10);
@@ -29,6 +30,34 @@ const getCommentsByArticle = async (query) => {
   return { comments, pagination };
 };
 
+const getRepliesByParent = async (parentId, query) => {
+  const page = parseInt(query.page) || 1;
+  const limit = parseInt(query.limit) || 5;
+  const skip = (page - 1) * limit;
+
+  const parentComment = await commentRepository.findById(parentId);
+  if (!parentComment) {
+    throw new NotFoundError("Không tìm thấy bình luận cha.");
+  }
+
+  const { comments, totalCount } =
+    await commentRepository.findRepliesByParentId({
+      parentId,
+      skip,
+      take: limit,
+    });
+
+  const totalPages = Math.ceil(totalCount / limit);
+  const pagination = {
+    currentPage: page,
+    totalPages,
+    totalCount,
+    limit,
+  };
+
+  return { comments, pagination };
+};
+
 const createComment = async (userId, body) => {
   const { articleId, content, parentId } = body;
 
@@ -37,7 +66,10 @@ const createComment = async (userId, body) => {
     throw new NotFoundError("Không tìm thấy bài viết để bình luận.");
   }
 
-  if (parentId) {
+  let recipientId = article.authorId;
+  let isReply = !!parentId;
+
+  if (isReply) {
     const parentComment = await commentRepository.findById(parentId);
     if (!parentComment) {
       throw new NotFoundError("Bình luận cha không tồn tại.");
@@ -45,8 +77,8 @@ const createComment = async (userId, body) => {
     if (parentComment.articleId !== articleId) {
       throw new BadRequestError("Bình luận cha không thuộc bài viết này.");
     }
-    if (parentComment.parentId !== null) {
-      throw new BadRequestError("Chỉ có thể trả lời bình luận gốc.");
+    if (userId !== parentComment.userId) {
+      recipientId = parentComment.userId;
     }
   }
 
@@ -59,6 +91,25 @@ const createComment = async (userId, body) => {
     isAuthor,
     parentId,
   });
+
+  if (userId !== recipientId) {
+    const notificationType = parentId ? "reply" : "comment";
+    const aggregationCommentId = isReply ? parentId : null;
+    let initialMetadata = {};
+    if (isReply) {
+      initialMetadata.newReplyId = newComment.id;
+    } else {
+      initialMetadata.newCommentId = newComment.id;
+    }
+    await notificationService.createNotification({
+      recipientId: recipientId,
+      actorId: userId,
+      type: notificationType,
+      articleId: article.id,
+      commentId: aggregationCommentId,
+      metadata: initialMetadata,
+    });
+  }
 
   return newComment;
 };
@@ -93,6 +144,7 @@ const deleteComment = async (commentId, userId) => {
 
 module.exports = {
   getCommentsByArticle,
+  getRepliesByParent,
   createComment,
   updateComment,
   deleteComment,

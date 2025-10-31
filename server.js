@@ -3,13 +3,17 @@ const express = require('express');
 const cors = require('cors');
 const prisma = require('./src/config/db.config');
 const redisClient = require('./src/config/redis.config');
-
-const authRoutes = require('./src/routes/auth.route');
 const errorMiddleware = require('./src/middlewares/error.middleware');
 const loggerMiddleware = require('./src/middlewares/logger.middleware');
+const {initWebSocket} = require('./src/utils/websocket.js');
+const http = require('http');
 
 const mainApiRouter = require('./src/routes/');
+const {createServer} = require("node:http");
 const app = express();
+const server = http.createServer(app);
+// init socket
+initWebSocket(server);
 
 const corsOptions = {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
@@ -38,7 +42,7 @@ const PORT = process.env.PORT || 8080;
 
         console.log("✅ Redis status:", redisClient.status);
 
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
         });
     } catch (err) {
