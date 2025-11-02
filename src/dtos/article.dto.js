@@ -47,6 +47,7 @@ class ArticleSummaryDTO {
     this.id = article.id;
     this.title = article.title;
     this.slug = article.slug;
+    this.content = article.content;
     this.thumbnailUrl = article.thumbnailUrl;
     this.createdAt = article.createdAt;
     this.author = article.author ? new AuthorDTO(article.author) : null;

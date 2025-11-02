@@ -1,4 +1,5 @@
 const articleRepository = require("../repositories/article.repository");
+const interactionRepository = require("../repositories/interaction.repopsitory");
 const slugify = require("../utils/slugify");
 const {
   BadRequestError,
@@ -7,6 +8,7 @@ const {
 } = require("../utils/AppError");
 const { default: axios } = require("axios");
 const { ar } = require("zod/locales");
+const notificationService = require("./notification.service");
 const { AuthorDTO } = require("../dtos/article.dto");
 
 const createArticle = async (body, userId, file) => {
@@ -42,7 +44,7 @@ const createArticle = async (body, userId, file) => {
     slug,
     thumbnailUrl,
     authorId: userId,
-    moderationStatus: "pending",
+    moderationStatus: "public",
     readTimeMinutes: parseInt(readTimeMinutes, 10) || 5,
   };
 
@@ -65,12 +67,12 @@ const getArticleBySlug = async (userId, slug) => {
   return article;
 };
 
-const getAllArticles = async (query) => {
+const getAllArticles = async (userId, query) => {
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const { articles, totalCount } = await articleRepository.findAll({
+  const { articles, totalCount } = await articleRepository.findAll(userId, {
     skip,
     take: limit,
   });
@@ -87,7 +89,7 @@ const getAllArticles = async (query) => {
 };
 
 const getRecommendedArticles = async (query) => {
-  const userId = parseInt(query.userId); 
+  const userId = parseInt(query.userId);
   const page = parseInt(query.page) || 1;
   const limit = parseInt(query.limit) || 10;
 
@@ -102,7 +104,10 @@ const getRecommendedArticles = async (query) => {
     const articles = response.data.data.results;
     const articleIds = articles.map((a) => a.id);
 
-    const resultArticles = await articleRepository.findByIds(userId, articleIds);
+    const resultArticles = await articleRepository.findByIds(
+      userId,
+      articleIds
+    );
 
     const orderedArticles = articleIds
       .map((id) => resultArticles.find((a) => a.id === id))
@@ -217,7 +222,7 @@ const updateArticle = async (articleId, userId, body, file) => {
     }
   }
 
-  articleData.moderationStatus = "pending";
+  articleData.moderationStatus = "public";
   articleData.updatedAt = new Date();
 
   delete articleData.tags;
@@ -320,6 +325,15 @@ const toggleArticleLike = async (userId, articleIdStr) => {
   }
 
   const result = await interactionRepository.toggleLike(userId, articleId);
+
+  if (result.isLiked && userId !== article.authorId) {
+    await notificationService.createNotification({
+      recipientId: article.authorId,
+      actorId: userId,
+      type: "like",
+      articleId: article.id,
+    });
+  }
   return result;
 };
 

@@ -18,6 +18,24 @@ const getComments = asyncHandler(async (req, res) => {
   );
 });
 
+const getReplies = asyncHandler(async (req, res) => {
+  const parentId = parseInt(req.params.id, 10);
+
+  const { comments, pagination } = await commentService.getRepliesByParent(
+    parentId,
+    req.query
+  );
+
+  const commentsDTO = comments.map((comment) => new CommentDTO(comment));
+
+  res.status(200).json(
+    new ApiResponse(200, "Lấy phản hồi thành công.", {
+      comments: commentsDTO,
+      pagination,
+    })
+  );
+});
+
 const createComment = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const comment = await commentService.createComment(userId, req.body);
@@ -59,6 +77,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 
 module.exports = {
   getComments,
+  getReplies,
   createComment,
   updateComment,
   deleteComment,

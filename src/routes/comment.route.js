@@ -20,6 +20,13 @@ router.post(
   commentController.createComment
 );
 
+router.get(
+  "/:id/replies",
+  auth,
+  validate(commentValidation.getReplies),
+  commentController.getReplies
+);
+
 router.put(
   "/:id",
   auth,

@@ -89,7 +89,6 @@ const findByIds = async (userId, articleIds) => {
   });
 };
 
-
 const findByIdsV2 = async (userId, articleIds) => {
   return prisma.article.findMany({
     where: {
@@ -123,7 +122,9 @@ const findByIdsV2 = async (userId, articleIds) => {
 
 
 
-const findAll = async ({ skip, take }) => {
+
+
+const findAll = async (userId, { skip, take }) => {
   const whereClause = {
     moderationStatus: "public",
   };
@@ -150,6 +151,16 @@ const findAll = async ({ skip, take }) => {
             comments: true,
           },
         },
+        articleLikes: userId
+          ? {
+              where: { userId },
+            }
+          : false,
+        bookmarks: userId
+          ? {
+              where: { userId },
+            }
+          : false,
       },
       orderBy: { updatedAt: "desc" },
       skip,
@@ -197,6 +208,16 @@ const findFeed = async (userId, { skip, take }) => {
             comments: true,
           },
         },
+        articleLikes: userId
+          ? {
+              where: { userId },
+            }
+          : false,
+        bookmarks: userId
+          ? {
+              where: { userId },
+            }
+          : false,
       },
       orderBy: { updatedAt: "desc" },
       skip,

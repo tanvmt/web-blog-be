@@ -1,4 +1,3 @@
-// src/routes/article.route.js
 const express = require("express");
 const articleController = require("../controllers/article.controller");
 const auth = require("../middlewares/auth.middleware");
@@ -79,7 +78,6 @@ router.get(
   articleController.getAuthorArticles
 );
 
-
 router.get(
   "/recommend",
   auth,
@@ -88,12 +86,26 @@ router.get(
 );
 
 router.get(
-  "/search/knn",
+    "/search/knn",
+    auth,
+    validate(articleValidation.getSearchArticles),
+    articleController.getSearchArticles
+  );
+
+
+router.post(
+  "/:id/like",
   auth,
-  validate(articleValidation.getSearchArticles),
-  articleController.getSearchArticles
+  validate(articleValidation.interactArticle),
+  articleController.toggleLike
 );
 
+router.post(
+  "/:id/bookmark",
+  auth,
+  validate(articleValidation.interactArticle),
+  articleController.toggleBookmark
+);
 
 router.get(
   "/:slug",
@@ -110,9 +122,5 @@ router.get(
   validate(articleValidation.getArticles),
   articleController.getAllArticles
 );
-
-
-
-
 
 module.exports = router;
