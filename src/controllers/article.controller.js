@@ -2,6 +2,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const articleService = require("../services/article.service");
 const { ArticleDetailDTO, ArticleSummaryDTO } = require("../dtos/article.dto");
 const asyncHandler = require("../utils/asyncHandler");
+const { BadRequestError } = require("../utils/AppError");
 
 const createArticle = async (req, res, next) => {
   try {
@@ -37,6 +38,7 @@ const uploadMedia = async (req, res, next) => {
 };
 
 const getArticleBySlug = async (req, res, next) => {
+  console.log("Fetching article with slug");
   try {
     const { slug } = req.params;
     const userId = req.user ? req.user.id : null;
@@ -95,6 +97,40 @@ const getRecommendedArticles = async (req, res, next) => {
     next(error);
   }
 };
+const getSearchArticles = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || null;
+
+    if (!userId) throw new BadRequestError("User ID là bắt buộc.");
+
+    const { query = "", page = 1, limit = 10 } = req.query;
+
+    console.log("Search query:", query, "Page:", page, "Limit:", limit, "UserId:", userId);
+
+    const { articles, authors } =
+      await articleService.getSearchArticles({
+        query,
+        page,
+        limit,
+        userId,
+      });
+
+    const articleDTOs = articles.map((a) => new ArticleCompactDTO(a));
+
+    res.status(200).json(
+      new ApiResponse(200, "Tìm kiếm bài viết thành công.", {
+        articles: articleDTOs,
+        authors,
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+
 
 const getFeedArticles = async (req, res, next) => {
   try {
@@ -227,6 +263,7 @@ module.exports = {
   getArticleBySlug,
   getAllArticles,
   getRecommendedArticles,
+  getSearchArticles,
   getFeedArticles,
   getRelatedArticles,
   getAuthorArticles,

@@ -79,10 +79,17 @@ router.get(
 );
 
 router.get(
-    "/recommend",
+  "/recommend",
+  auth,
+  validate(articleValidation.getRecommendedArticles),
+  articleController.getRecommendedArticles
+);
+
+router.get(
+    "/search/knn",
     auth,
-    validate(articleValidation.getRecommendedArticles),
-    articleController.getRecommendedArticles
+    validate(articleValidation.getSearchArticles),
+    articleController.getSearchArticles
   );
 
 
