@@ -1,3 +1,4 @@
+const { Prisma } = require("@prisma/client");
 const prisma = require("../config/db.config");
 
 const create = async (articleData, tagsToConnect) => {
@@ -153,13 +154,13 @@ const findAll = async (userId, { skip, take }) => {
         },
         articleLikes: userId
           ? {
-              where: { userId },
-            }
+            where: { userId },
+          }
           : false,
         bookmarks: userId
           ? {
-              where: { userId },
-            }
+            where: { userId },
+          }
           : false,
       },
       orderBy: { updatedAt: "desc" },
@@ -210,13 +211,13 @@ const findFeed = async (userId, { skip, take }) => {
         },
         articleLikes: userId
           ? {
-              where: { userId },
-            }
+            where: { userId },
+          }
           : false,
         bookmarks: userId
           ? {
-              where: { userId },
-            }
+            where: { userId },
+          }
           : false,
       },
       orderBy: { updatedAt: "desc" },
@@ -353,6 +354,63 @@ const findByAuthor = async (authorId, excludeId, { skip, take }) => {
   return { articles, totalCount };
 };
 
+
+const findMostLikedSince = async (sinceDate) => {
+  return await prisma.article.findMany({
+    where: {
+      createdAt: { gte: sinceDate },
+      moderationStatus: "public",
+    },
+    select: {
+      id: true,
+    }
+  });
+}
+
+
+const statArticles = async (articleIds) => {
+  const stats = await prisma.$queryRaw`
+    SELECT 
+      article_id AS "articleId",
+      SUM(CASE WHEN action = 'like' THEN 1 ELSE 0 END) AS "likeCount",
+      SUM(CASE WHEN action = 'click' THEN 1 ELSE 0 END) AS "clickCount",
+      SUM(CASE WHEN action = 'comment' THEN 1 ELSE 0 END) AS "commentCount",
+      SUM(CASE WHEN action = 'bookmark' THEN 1 ELSE 0 END) AS "bookmarkCount",
+      SUM(CASE WHEN action = 'read' THEN 1 ELSE 0 END) AS "readCount"
+    FROM user_article_interactions
+    WHERE article_id IN (${Prisma.join(articleIds)})
+    GROUP BY article_id
+  `;
+  return stats;
+}
+
+const getUserPreferenceTags = async (userId, day = 7) => {
+  const sinceDate = new Date(Date.now() - day * 24 * 60 * 60 * 1000);
+
+  const tags = await prisma.$queryRaw`
+    SELECT 
+      at.tag_id AS "tagId",
+      SUM(
+        CASE 
+          WHEN uai.action = 'like' THEN 3
+          WHEN uai.action = 'comment' THEN 4
+          WHEN uai.action = 'bookmark' THEN 2
+          WHEN uai.action = 'read' THEN 1
+          ELSE 0
+        END
+      ) AS "score",
+      COUNT(*) AS "totalInteractions"
+    FROM user_article_interactions uai
+    JOIN article_tags at ON at.article_id = uai.article_id
+    WHERE uai.user_id = ${userId}
+      AND uai.created_at >= ${sinceDate}
+    GROUP BY at.tag_id
+    ORDER BY "score" DESC
+    LIMIT 10
+  `;
+  return tags;
+}
+
 module.exports = {
   create,
   update,
@@ -365,4 +423,7 @@ module.exports = {
   findByIdsV2,
   findRelatedByTags,
   findByAuthor,
+  findMostLikedSince,
+  statArticles,
+  getUserPreferenceTags,
 };

@@ -50,3 +50,10 @@ const PORT = process.env.PORT || 8080;
         process.exit(1);
     }
 })();
+
+// Sau khi server đã lắng nghe, khởi động các cron jobs
+const { startCrons } = require('./src/utils/cronScheduler.js');
+
+startCrons();
+
+console.log("[Scheduled] Cron jobs started _________________________________");
