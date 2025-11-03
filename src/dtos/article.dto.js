@@ -71,6 +71,7 @@ class ArticleCompactDTO {
     this.id = article.id;
     this.title = article.title;
     this.content = article.content;
+    this.slug = article.slug;
     this.publishedAt = article.createdAt;
     this.likeCount = article._count?.articleLikes || 0;
     this.userId = article.author?.id || null;

@@ -1,6 +1,6 @@
 const ApiResponse = require("../utils/ApiResponse");
 const articleService = require("../services/article.service");
-const { ArticleDetailDTO, ArticleSummaryDTO } = require("../dtos/article.dto");
+const { ArticleDetailDTO, ArticleSummaryDTO, ArticleCompactDTO } = require("../dtos/article.dto");
 const asyncHandler = require("../utils/asyncHandler");
 const { BadRequestError } = require("../utils/AppError");
 

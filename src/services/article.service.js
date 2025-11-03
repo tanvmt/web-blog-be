@@ -10,6 +10,9 @@ const { default: axios } = require("axios");
 const { ar } = require("zod/locales");
 const notificationService = require("./notification.service");
 const { AuthorDTO } = require("../dtos/article.dto");
+const logger = require("../utils/logger");
+
+const redisClient = require('../config/redis.config');
 
 const createArticle = async (body, userId, file) => {
   if (!file) {
@@ -88,17 +91,65 @@ const getAllArticles = async (userId, query) => {
   return { articles, pagination };
 };
 
+
+// Trả về số lượng bài viết gợi ý
+const getFeaturedArticles = async (userId, limit) => {
+
+  // Lấy danh sách bài viết nổi bật từ Redis
+  const featuredArticles = await redisClient.get('featured_articles');
+  if (!featuredArticles) {
+    logger.warn('Không tìm thấy bài viết nổi bật trong Redis');
+    return [];
+  }
+  const articleIds = JSON.parse(featuredArticles);
+
+  // Truy vấn bài viết gốc
+  const articles = await articleRepository.findByIds(userId, articleIds);
+
+  // Lấy phiên người dùng từ redis: phiên chứa danh sách bài viết phổ biến người dùng đã đọc qua
+  const today = new Date().toISOString().split('T')[0]; // định dạng YYYY-MM-DD
+  const key = `user:${userId}:featured_session:${today}:read`;
+  const readArticles = await redisClient.smembers(key);
+  const readSet = new Set(readArticles.map(id => parseInt(id, 10)));
+  logger.info(`Các bài viết người dùng đã đọc: ${Array.from(readSet)}`);
+
+  // Lấy ra cac tag ưu thích của người dùng
+  const preferredTags = await articleRepository.getUserPreferenceTags(userId, day = 7);
+  logger.info(`Tag ưu thích của người dùng ${userId}: ${preferredTags}`);
+
+  // Bắt đầu lọc bài viết gốc chưa đọc và ưu tiên bài viết có tag mới lạ
+  const filteredArticles = articles.filter(article => {
+    const hasPreferredTag = article.articleTags.some(at => preferredTags.includes(at.tag.name));
+    const isUnread = !readSet.has(article.id);
+    return isUnread && !hasPreferredTag;
+  });
+
+  // Trộn & random danh sách bài viết
+  const shuffled = filteredArticles.sort(() => 0.5 - Math.random());
+  const results = shuffled.slice(0, limit);
+
+  if (results.length > 0) {
+    const idsToAdd = results.map(a => a.id);
+    console.log('Đánh dấu bài viết đã được xem bởi người dùng:', idsToAdd);
+    await redisClient.sadd(key, idsToAdd);
+    await redisClient.expire(key, 24 * 60 * 60); // TTL 1 ngày
+  }
+
+  console.log('[Result] Bài viết nổi bật trả về:', results.map(a => a.id));
+  return results;
+}
+
 const getRecommendedArticles = async (query) => {
   const userId = parseInt(query.userId);
   const page = parseInt(query.page) || 1;
-  const limit = parseInt(query.limit) || 10;
+  const limit = parseInt(query.limit) || 20;
 
   if (!userId) throw new BadRequestError("User ID là bắt buộc.");
 
   try {
     const rcmApi = `http://localhost:5000/articles/recommend`;
     const response = await axios.get(rcmApi, {
-      params: { user: userId, page, size: limit },
+      params: { user: userId, page, size: Math.floor(limit * 80 / 100) },
     });
 
     const articles = response.data.data.results;
@@ -112,6 +163,7 @@ const getRecommendedArticles = async (query) => {
     const orderedArticles = articleIds
       .map((id) => resultArticles.find((a) => a.id === id))
       .filter(Boolean);
+    console.log('[Result] Bài viết gợi ý trả về:', orderedArticles.map(a => a.id));
 
     const pagination = {
       currentPage: page,
@@ -120,10 +172,27 @@ const getRecommendedArticles = async (query) => {
       totalPages: 10,
     };
 
-    return { articles: orderedArticles, pagination };
+
+    // Bắt đầu lấy thêm bái viết phổ biến
+    const featuredArticles = await getFeaturedArticles(userId, Math.ceil(limit * 20 / 100));
+
+    // Kết hợp 2 danh sấch và loại bỏ trùng lặp:
+    const mixedArticles = [...orderedArticles];
+    featuredArticles.forEach(fa => {
+      if (!mixedArticles.find(a => a.id === fa.id)) {
+        const insertPos = Math.floor(Math.random() * (mixedArticles.length + 1));
+        mixedArticles.splice(insertPos, 0, fa);
+      }
+    });
+    const finalArticles = mixedArticles.slice(0, limit);
+
+    console.log('[Final Result] Bài viết trả về:', finalArticles.map(a => a.id));
+
+
+    return { articles: finalArticles, pagination };
   } catch (error) {
-    console.error("Error calling Python service:", error.message);
-    throw BadRequestError("Lỗi khi lấy bài viết gợi ý từ python service.");
+    console.error("Error calling Python service:", error);
+    throw new BadRequestError("Lỗi khi lấy bài viết gợi ý từ python service.");
   }
 };
 
@@ -352,6 +421,42 @@ const toggleArticleBookmark = async (userId, articleIdStr) => {
   return result;
 };
 
+
+const updateFeaturedArticles = async () => {
+  const now = new Date();
+  const sinceDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // Lấy ra tất cả bài viết trong 24 giờ qua
+  logger.info(`Đang lấy bài viết trong 24 giờ qua`);
+  const featuredArticleIds = await articleRepository.findMostLikedSince(sinceDate);
+  logger.info(`Tìm thấy ${featuredArticleIds.length} bài viết`);
+
+  // Bắt đầu truy vấn số tương tác và tính toán trọng số. 
+  logger.info('Bắt đầu thống kê số tương tác cho các bài viết gần đây');
+  const arrayArticleIds = featuredArticleIds.map(item => item.id);
+  const itemedArticleCounts = await articleRepository.statArticles(arrayArticleIds);
+  logger.info(`Thống kê số tương tác cho ${arrayArticleIds.length} bài viết hoàn tất`);
+
+
+  // Tính điểm trọng số cho từng bài viết
+  const articleScores = itemedArticleCounts.map((item) => {
+    const baseScore = item.likeCount + item.commentCount * 2;
+    const score = baseScore * (1 + item.commentCount / (item.likeCount + 1));
+    return { articleId: item.articleId, score };
+  });
+
+  logger.info(`Tính toán điểm trọng số cho các bài viết hoàn tất`);
+  articleScores.sort((a, b) => b.score - a.score);
+  console.log('Top 100 bài viết nổi bật:', articleScores.slice(0, 100));
+
+  // Bắt đầu cache bài viết nổi bật vào Redis
+  const data = articleScores.slice(0, 100).map(a => a.articleId);
+  console.log('Dữ liệu cache vào redis:', data);
+  await redisClient.set('featured_articles', JSON.stringify(data), 'EX', 1200); // hết hạn sau 20 phút
+
+  console.log(`Đã cập nhật bài viết nổi bật: ${articleScores.length} items vào redis`);
+}
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -366,4 +471,5 @@ module.exports = {
   getAuthorArticles,
   toggleArticleLike,
   toggleArticleBookmark,
+  updateFeaturedArticles
 };
