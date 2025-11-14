@@ -79,7 +79,7 @@ const getAllArticles = async (req, res, next) => {
 
 const getRecommendedArticles = async (req, res, next) => {
   try {
-    const { articles, pagination } = await articleService.getRecommendedArticles(
+    const { articles, pagination } = await articleService.getRecommendedArticlesV2(
       req.query
     );
 
@@ -255,6 +255,20 @@ const toggleBookmark = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Cập nhật bookmark thành công.", result));
 });
 
+
+const read = asyncHandler(async (req, res) => {
+  const { id: articleId } = req.params;
+  const { id: userId } = req.user;
+
+  await articleService.updateReadAction(userId, articleId);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Cập nhật thành công.", null));
+});
+
+
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -269,4 +283,5 @@ module.exports = {
   getAuthorArticles,
   toggleLike,
   toggleBookmark,
+  read,
 };

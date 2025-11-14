@@ -387,7 +387,7 @@ const statArticles = async (articleIds) => {
 const getUserPreferenceTags = async (userId, day = 7) => {
   const sinceDate = new Date(Date.now() - day * 24 * 60 * 60 * 1000);
 
-  const tags = await prisma.$queryRaw`
+  const tagIds = await prisma.$queryRaw`
     SELECT 
       at.tag_id AS "tagId",
       SUM(
@@ -408,8 +408,21 @@ const getUserPreferenceTags = async (userId, day = 7) => {
     ORDER BY "score" DESC
     LIMIT 10
   `;
-  return tags;
+  return tagIds.map(t => t.tagId );
 }
+
+
+const findNovelArticlesByTags = async (articleIds, tagIds) => {
+  const ids = await prisma.$queryRaw`
+    SELECT DISTINCT at.article_id
+    FROM article_tags at
+    WHERE at.article_id IN (${Prisma.join(articleIds)}) AND at.tag_id NOT IN (${Prisma.join(tagIds)})
+  `;
+  return ids.map(i => i.article_id);
+}
+
+
+
 
 module.exports = {
   create,
@@ -426,4 +439,5 @@ module.exports = {
   findMostLikedSince,
   statArticles,
   getUserPreferenceTags,
+  findNovelArticlesByTags,
 };

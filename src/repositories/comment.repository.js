@@ -53,6 +53,15 @@ const findRepliesByParentId = async ({ parentId, skip, take }) => {
 };
 
 const create = async ({ userId, articleId, content, isAuthor, parentId }) => {
+
+  await prisma.userArticleInteraction.create({
+    data: {
+      userId: userId,
+      articleId: articleId,
+      action: 'comment'
+    }
+  });
+
   return prisma.comment.create({
     data: {
       content,

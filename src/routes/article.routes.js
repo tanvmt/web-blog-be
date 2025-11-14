@@ -107,6 +107,13 @@ router.post(
   articleController.toggleBookmark
 );
 
+router.post(
+  "/:id/read",
+  auth,
+  validate(articleValidation.interactArticle),
+  articleController.read
+);
+
 router.get(
   "/:slug",
   auth,
