@@ -14,6 +14,8 @@ const logger = require("../utils/logger");
 
 const redisClient = require('../config/redis.config');
 
+const RECOMMEND_API = process.env.RECOMMEND_API;
+
 const createArticle = async (body, userId, file) => {
   if (!file) {
     throw new BadRequestError("Vui lòng cung cấp ảnh bìa (thumbnail).");
@@ -137,6 +139,131 @@ const getFeaturedArticles = async (userId, limit) => {
 
   console.log('[Result] Bài viết nổi bật trả về:', results.map(a => a.id));
   return results;
+}
+
+
+const getFeaturedArticlesV2 = async (userId, limit, readSet) => {
+
+  // Lấy toàn bộ danh sách bài viết nổi bật từ Redis
+  const cachedArticles = await redisClient.get('featured_articles');
+  if (!cachedArticles) {
+    logger.warn('Không tìm thấy bài viết nổi bật trong Redis');
+    return [];
+  }
+  const cachedArticlesIds = JSON.parse(cachedArticles);
+  logger.info(`Tìm thấy ${cachedArticlesIds.length} bài viết nổi bật trong Redis`);
+
+  // Lọc danh sách bài viết ở trên: không chưa tag ưu thích của người dùng
+  const preferredTags = await articleRepository.getUserPreferenceTags(userId, day = 7); // [tag1, tag2, ...]
+  const novelArticleIds = (preferredTags.length === 0) ? cachedArticlesIds 
+  : await articleRepository.findNovelArticlesByTags(cachedArticlesIds, preferredTags); 
+
+  // Lọc bài viết đã đọc
+  const unreadArticleIds = novelArticleIds.filter(id => !readSet.has(id));
+
+  // suffle & limit 
+  const shuffled = unreadArticleIds.sort(() => 0.5 - Math.random());
+  const selectedIds = shuffled.slice(0, limit);
+
+  return selectedIds;
+}
+
+const getRecommendedArticlesV2 = async (query) => {
+  const userId = parseInt(query.userId);
+  const page = parseInt(query.page) || 1;
+  const limit = parseInt(query.limit) || 20;
+
+  if (!userId) throw new BadRequestError("User ID là bắt buộc.");
+
+  // Nếu page = 1, thì bắt đầy lấy kho bài gợi ý + nổi bật để cache vào redis (chưa đọc)
+
+  try {
+    if (page === 1) {
+
+      // lấy danh sách bài viết đã đọc trong 90 ngày qua trong cache của người dùng
+      const readKey = `user:${userId}:read_articles`;
+      const readArticles = await redisClient.smembers(readKey);
+      const readArticleSet = new Set(readArticles.map(id => parseInt(id, 10)));
+
+
+      // lấy danh sách 200 id bài viết gợi ý chưa đọc từ python service
+      const response = await axios.post(RECOMMEND_API, {
+        user_id: userId,
+        read_ids: Array.from(readArticleSet),
+      });
+
+      if (response.data.status === "error") {
+        throw new BadRequestError(response.data.error.message);
+      }
+
+      const recArticleIds = response.data.data.results; // [id1, id2, id3, ...]
+
+      // Lấy danh sách 40 id bài viết nổi bật chưa đọc từ redis cache
+      const featuredArticleIds = await getFeaturedArticlesV2(userId, 40, readArticleSet);
+      console.log(`Bài viết nổi bật chưa đọc cho user ${userId}:`, featuredArticleIds);
+
+      // Trộn 2 danh sách trên và loại bỏ trùng lặp
+      const combinedIdsSet = new Set([...recArticleIds, ...featuredArticleIds]);
+      const combinedIds = Array.from(combinedIdsSet);
+
+      // Suffle & lưu vào redis cache
+      const finalIds = combinedIds.sort(() => 0.5 - Math.random());
+
+      const cacheKey = `user:${userId}:recommended_articles`;
+      await redisClient.set(cacheKey, JSON.stringify(finalIds));
+
+      console.log(`Đã cập nhật kho bài viết gợi ý cho user ${userId}: ${finalIds.length} items vào redis`);
+
+    }
+
+    // Lấy danh sách bài viết gợi ý từ redis cache
+    const cacheKey = `user:${userId}:recommended_articles`;
+    const cachedData = await redisClient.get(cacheKey);
+    if (!cachedData) {
+      throw new BadRequestError("Không tìm thấy kho bài viết gợi ý trong Redis.");
+    }
+    const recommendedArticleIds = JSON.parse(cachedData);
+    console.log(`Tìm thấy ${recommendedArticleIds.length} bài viết gợi ý trong Redis cho user ${userId}`);
+
+    // Lấy bài viết theo phân trang
+    const startIdx = (page - 1) * limit;
+    const endIdx = startIdx + limit;
+    const pagedArticleIds = recommendedArticleIds.slice(startIdx, endIdx);
+
+    const resultArticles = await articleRepository.findByIds(
+      userId,
+      pagedArticleIds
+    );
+
+    const orderedArticles = pagedArticleIds
+      .map((id) => resultArticles.find((a) => a.id === id))
+      .filter(Boolean);
+    console.log('[Result] Bài viết gợi ý trả về:', orderedArticles.map(a => a.id));
+
+    const pagination = {
+      currentPage: page,
+      limit,
+      totalCount: recommendedArticleIds.length,
+      totalPages: Math.ceil(recommendedArticleIds.length / limit),
+    };
+
+    // Cache bài viết đã đọc vào redis
+    const readKey = `user:${userId}:read_articles`;
+  
+    const idsToAdd = orderedArticles
+      .map(a => a.id)
+      
+    if (idsToAdd.length > 0) {
+      await redisClient.sadd(readKey, idsToAdd);
+      await redisClient.expire(readKey, 90 * 24 * 60 * 60); // TTL 90 ngày
+    }
+
+    return { articles: orderedArticles, pagination}
+
+  } catch (error) {
+    console.error("Error calling Python service:", error);
+    throw new BadRequestError("Lỗi khi lấy bài viết gợi ý");
+  }
 }
 
 const getRecommendedArticles = async (query) => {
@@ -457,6 +584,17 @@ const updateFeaturedArticles = async () => {
   console.log(`Đã cập nhật bài viết nổi bật: ${articleScores.length} items vào redis`);
 }
 
+
+const updateReadAction = async (userId, articleIdStr) => {
+
+  const articleId = parseInt(articleIdStr, 10);
+  if (isNaN(articleId)) {
+    throw new BadRequestError("Article ID không hợp lệ.");
+  }
+
+  await interactionRepository.recordReadAction(userId, articleId);
+}
+
 module.exports = {
   createArticle,
   updateArticle,
@@ -471,5 +609,7 @@ module.exports = {
   getAuthorArticles,
   toggleArticleLike,
   toggleArticleBookmark,
-  updateFeaturedArticles
+  updateFeaturedArticles,
+  getRecommendedArticlesV2,
+  updateReadAction,
 };

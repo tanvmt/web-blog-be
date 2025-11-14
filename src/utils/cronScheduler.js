@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 const articleService = require("../services/article.service");
 
 // job chạy mỗi 1 phút đẻ cập nhật danh sách bài viết nổi bật trong cache redis
-const featuredCron = cron.schedule('*/30 * * * * *', async () => {
+const featuredCron = cron.schedule('0 */15 * * * *', async () => {
     try {
         await articleService.updateFeaturedArticles();
     } catch (error) {
